@@ -310,13 +310,134 @@
 
     button:focus-visible { outline: 2px solid var(--orange); outline-offset: 3px; }
 
+    .character-screen {
+      position: relative;
+      width: min(100%, 480px);
+      min-height: 100vh;
+      margin: 0 auto;
+      padding: 28px 20px 32px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .character-heading {
+      margin-bottom: 28px;
+      padding-left: 16px;
+      border-left: 3px solid var(--accent);
+    }
+
+    .character-heading h1 {
+      margin: 0;
+      font-size: clamp(24px, 7vw, 32px);
+      line-height: 1.1;
+    }
+
+    .character-form {
+      padding: 22px;
+      border: 1px solid var(--line);
+      background: linear-gradient(135deg, var(--surface-light), var(--surface));
+      box-shadow: 0 18px 45px rgba(0, 0, 0, .24);
+    }
+
+    .form-field { display: block; margin-bottom: 20px; }
+
+    .form-label {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+
+    .form-input {
+      width: 100%;
+      min-height: 48px;
+      padding: 0 13px;
+      border: 1px solid var(--line);
+      outline: none;
+      color: var(--text);
+      background: #0b100f;
+      font: inherit;
+      font-size: 14px;
+    }
+
+    .form-input:focus { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent-dark); }
+
+    .gender-options {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .gender-option { position: relative; }
+    .gender-option input { position: absolute; opacity: 0; pointer-events: none; }
+
+    .gender-option span {
+      display: block;
+      padding: 14px 10px;
+      border: 1px solid var(--line);
+      color: #bbc7be;
+      background: #0b100f;
+      font-size: 12px;
+      text-align: center;
+      cursor: pointer;
+    }
+
+    .gender-option input:checked + span {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-dark);
+    }
+
+    .gender-option input:focus-visible + span { outline: 2px solid var(--orange); outline-offset: 3px; }
+
+    .life-button { margin-top: 6px; }
+
     @media (max-width: 360px) {
-      main { padding: 22px 16px 24px; }
+      main, .character-screen { padding: 22px 16px 24px; }
       .hero-card { padding: 18px; }
     }
   </style>
 </head>
 <body>
+  <section id="character-screen" class="character-screen" aria-labelledby="character-title">
+    <div class="system-label">[СИСТЕМА]</div>
+    <div class="character-heading">
+      <p class="eyebrow">Новий шлях починається</p>
+      <h1 id="character-title">СТВОРЕННЯ ПЕРСОНАЖА</h1>
+    </div>
+    <form id="character-form" class="character-form">
+      <label class="form-field">
+        <span class="form-label">Ім’я</span>
+        <input id="character-name" class="form-input" name="name" type="text" maxlength="24" autocomplete="name" required>
+      </label>
+
+      <fieldset class="form-field" style="border: 0; padding: 0; margin-left: 0; margin-right: 0;">
+        <legend class="form-label">Стать</legend>
+        <div class="gender-options">
+          <label class="gender-option">
+            <input type="radio" name="gender" value="Чоловік" required>
+            <span>Чоловік</span>
+          </label>
+          <label class="gender-option">
+            <input type="radio" name="gender" value="Жінка">
+            <span>Жінка</span>
+          </label>
+        </div>
+      </fieldset>
+
+      <label class="form-field">
+        <span class="form-label">Вік</span>
+        <input class="form-input" name="age" type="number" min="1" max="120" inputmode="numeric" required>
+      </label>
+
+      <button class="awakening-button life-button" type="submit">ПОЧАТИ ЖИТТЯ</button>
+    </form>
+  </section>
+
   <main>
     <div class="system-label">[СИСТЕМА]</div>
 
@@ -396,10 +517,40 @@
   <script>
     let experience = 0;
 
+    const characterStorageKey = "life-game-character";
+    const characterScreen = document.querySelector("#character-screen");
+    const characterForm = document.querySelector("#character-form");
+    const heroName = document.querySelector("#hero-name");
     const awakeningButton = document.querySelector("#awakening-button");
     const awakeningContent = document.querySelector("#awakening-content");
     const experienceValue = document.querySelector("#xp-value");
     const experienceProgress = document.querySelector("#xp-progress");
+
+    function showGame(character) {
+      heroName.textContent = character.name;
+      characterScreen.hidden = true;
+      document.querySelector("main").hidden = false;
+    }
+
+    const savedCharacter = localStorage.getItem(characterStorageKey);
+    if (savedCharacter) {
+      showGame(JSON.parse(savedCharacter));
+    } else {
+      document.querySelector("main").hidden = true;
+    }
+
+    characterForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const formData = new FormData(characterForm);
+      const character = {
+        name: formData.get("name").trim(),
+        gender: formData.get("gender"),
+        age: formData.get("age")
+      };
+
+      localStorage.setItem(characterStorageKey, JSON.stringify(character));
+      showGame(character);
+    });
 
     function updateExperience() {
       experienceValue.textContent = `${experience} / 100`;
