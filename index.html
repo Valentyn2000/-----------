@@ -149,6 +149,21 @@
       letter-spacing: .02em;
     }
 
+    .level-up-message {
+      margin-top: 18px;
+    }
+
+    .progress-panel {
+      padding: 15px 16px;
+      border: 1px solid var(--line);
+      background: rgba(17, 24, 23, .78);
+      color: var(--text);
+      font-size: 12px;
+      line-height: 1.8;
+    }
+
+    .progress-panel strong { color: var(--accent); }
+
     .quest-list { display: grid; gap: 8px; }
 
     .quest {
@@ -507,7 +522,7 @@
           <p class="eyebrow">Поточний герой</p>
           <h1 id="hero-name">Гравець</h1>
         </div>
-        <div class="level">LVL<br><strong>1</strong></div>
+        <div class="level">РІВЕНЬ<br><strong>1</strong></div>
       </div>
 
       <div class="xp-block">
@@ -515,6 +530,10 @@
         <div id="xp-progress" class="xp-track" role="progressbar" aria-label="Досвід" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
           <div class="xp-fill"></div>
         </div>
+      </div>
+      <div id="level-up-message" class="system-message level-up-message" hidden>
+        НОВИЙ РІВЕНЬ
+        <span>Ти став сильнішим. Продовжуй.</span>
       </div>
     </section>
 
@@ -569,7 +588,17 @@
     <section class="section" aria-label="Серія">
       <div class="streak">
         <p class="streak-title">Серія</p>
-        <p class="streak-count">0 днів</p>
+        <p id="streak-count" class="streak-count">0 днів</p>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="progress-title">
+      <p class="section-label" id="progress-title">Прогрес</p>
+      <div class="progress-panel">
+        Рівень: <strong id="progress-level">1</strong><br>
+        XP: <strong id="progress-xp">0</strong><br>
+        Серія: <strong id="progress-streak">0 днів</strong><br>
+        Виконано квестів: <strong id="progress-quests">0</strong>
       </div>
     </section>
 
@@ -634,8 +663,20 @@
         speed: 1,
         discipline: 1
       },
-      completedQuests: []
+      completedQuests: [],
+      completedQuestCount: 0,
+      streak: 0,
+      completedDays: [],
+      level: 1
     };
+
+    const levelThresholds = [
+      { level: 1, minimumXp: 0, nextLevelXp: 100 },
+      { level: 2, minimumXp: 100, nextLevelXp: 250 },
+      { level: 3, minimumXp: 250, nextLevelXp: 450 },
+      { level: 4, minimumXp: 450, nextLevelXp: 700 },
+      { level: 5, minimumXp: 700, nextLevelXp: 1000 }
+    ];
 
     let gameState = loadGameState();
 
@@ -657,7 +698,14 @@
           ...defaultGameState,
           ...savedGameState,
           stats: { ...defaultGameState.stats, ...(savedGameState.stats || {}) },
-          completedQuests: Array.isArray(savedGameState.completedQuests) ? savedGameState.completedQuests : []
+          completedQuests: Array.isArray(savedGameState.completedQuests) ? savedGameState.completedQuests : [],
+          completedDays: Array.isArray(savedGameState.completedDays) ? savedGameState.completedDays : [],
+          completedQuestCount: Number.isFinite(savedGameState.completedQuestCount)
+            ? savedGameState.completedQuestCount
+            : (Array.isArray(savedGameState.completedQuests) ? savedGameState.completedQuests.length : 0),
+          level: Number.isInteger(savedGameState.level)
+            ? savedGameState.level
+            : getLevelInfo(Number(savedGameState.experience) || 0).level
         };
       } catch {
         return { ...defaultGameState, completedQuests: [] };
@@ -696,9 +744,38 @@
     });
 
     function updateExperience() {
-      experienceValue.textContent = `${gameState.experience} / 100`;
+      const levelInfo = getLevelInfo(gameState.experience);
+      const progressRange = levelInfo.nextLevelXp - levelInfo.minimumXp;
+      const levelProgress = Math.min(100, ((gameState.experience - levelInfo.minimumXp) / progressRange) * 100);
+
+      experienceValue.textContent = `${gameState.experience} / ${levelInfo.nextLevelXp}`;
       experienceProgress.setAttribute("aria-valuenow", gameState.experience);
-      experienceProgress.querySelector(".xp-fill").style.width = `${gameState.experience}%`;
+      experienceProgress.setAttribute("aria-valuemax", levelInfo.nextLevelXp);
+      experienceProgress.querySelector(".xp-fill").style.width = `${levelProgress}%`;
+    }
+
+    function getLevelInfo(experience) {
+      return [...levelThresholds].reverse().find((threshold) => experience >= threshold.minimumXp) || levelThresholds[0];
+    }
+
+    function updateLevel() {
+      const currentLevel = getLevelInfo(gameState.experience).level;
+      if (currentLevel > gameState.level) {
+        gameState.level = currentLevel;
+        document.querySelector("#level-up-message").hidden = false;
+        saveGameState();
+      }
+
+      document.querySelector(".level strong").textContent = gameState.level;
+    }
+
+    function updateProgressView() {
+      const streakText = `${gameState.streak} днів`;
+      document.querySelector("#streak-count").textContent = streakText;
+      document.querySelector("#progress-level").textContent = gameState.level;
+      document.querySelector("#progress-xp").textContent = gameState.experience;
+      document.querySelector("#progress-streak").textContent = streakText;
+      document.querySelector("#progress-quests").textContent = gameState.completedQuestCount;
     }
 
     function updateGameStateView() {
@@ -711,7 +788,21 @@
       document.querySelector("#endurance-value").textContent = gameState.stats.endurance;
       document.querySelector("#speed-value").textContent = gameState.stats.speed;
       document.querySelector("#discipline-value").textContent = gameState.stats.discipline;
+      updateLevel();
+      updateProgressView();
       updateExperience();
+    }
+
+    function completeDayIfReady() {
+      const dayQuestIds = [...document.querySelectorAll(".day-quest")].map((quest) => quest.dataset.questId);
+      const allDayQuestsCompleted = dayQuestIds.every((questId) => gameState.completedQuests.includes(questId));
+      const completionDate = new Date().toISOString().slice(0, 10);
+
+      if (allDayQuestsCompleted && !gameState.completedDays.includes(completionDate)) {
+        gameState.streak += 1;
+        gameState.completedDays.push(completionDate);
+        saveGameState();
+      }
     }
 
     awakeningButton.addEventListener("click", () => {
@@ -733,7 +824,7 @@
       completeButton.addEventListener("click", () => {
         if (completeButton.disabled || gameState.completedQuests.includes(questId)) return;
 
-        gameState.experience = Math.min(100, gameState.experience + Number(quest.dataset.xp));
+        gameState.experience += Number(quest.dataset.xp);
         if (quest.dataset.stat) {
           gameState.stats[quest.dataset.stat] += Number(quest.dataset.statAmount);
         }
@@ -741,14 +832,17 @@
           gameState[quest.dataset.state] = Math.min(100, gameState[quest.dataset.state] + Number(quest.dataset.stateAmount));
         }
         gameState.completedQuests.push(questId);
+        gameState.completedQuestCount += 1;
         quest.classList.add("completed");
         completeButton.disabled = true;
         completeButton.textContent = translations[language].completed;
+        completeDayIfReady();
         saveGameState();
         updateGameStateView();
       });
     });
 
+    completeDayIfReady();
     updateGameStateView();
   </script>
 </body>
