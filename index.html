@@ -333,6 +333,18 @@
     .quest.completed .quest-name { text-decoration: line-through; }
     .complete-button:disabled { color: var(--muted); border-color: var(--line); background: var(--surface); cursor: default; }
 
+    .quest.locked,
+    .series-card.locked,
+    .long-term-card.locked { opacity: .52; }
+
+    .quest-lock {
+      margin: 0 0 8px;
+      color: var(--orange);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .06em;
+    }
+
     [hidden] { display: none !important; }
 
     .xp-track {
@@ -656,6 +668,10 @@
         НОВИЙ РІВЕНЬ
         <span>Ти став сильнішим. Продовжуй.</span>
       </div>
+      <div id="quest-unlock-message" class="system-message level-up-message" hidden>
+        ВІДКРИТО НОВІ КВЕСТИ
+        <span>Тобі стали доступні нові випробування.</span>
+      </div>
     </section>
 
     <section class="section" aria-labelledby="status-title">
@@ -696,6 +712,36 @@
       </div>
     </section>
 
+    <section class="section" aria-labelledby="daily-pool-title">
+      <p class="section-label" id="daily-pool-title">Пул щоденних квестів</p>
+      <div class="quest-list">
+        <article class="quest pool-quest" data-quest-id="pool-movement-10" data-pool-quest="true" data-difficulty="easy" data-min-level="1" data-xp="10">
+          <div class="quest-copy"><p class="quest-name">10 хвилин руху</p><p class="quest-description">Легка активність протягом десяти хвилин.</p><p class="quest-reward">🟢 ЛЕГКА · +10 XP</p><p class="quest-lock" hidden></p></div>
+          <button class="complete-button" type="button">ВИКОНАНО</button>
+        </article>
+        <article class="quest pool-quest" data-quest-id="pool-order-10" data-pool-quest="true" data-difficulty="easy" data-min-level="1" data-xp="10">
+          <div class="quest-copy"><p class="quest-name">Наведи порядок</p><p class="quest-description">Прибери невелику зону навколо себе.</p><p class="quest-reward">🟢 ЛЕГКА · +10 XP</p><p class="quest-lock" hidden></p></div>
+          <button class="complete-button" type="button">ВИКОНАНО</button>
+        </article>
+        <article class="quest pool-quest" data-quest-id="pool-activity-20" data-pool-quest="true" data-difficulty="easy" data-min-level="2" data-xp="15">
+          <div class="quest-copy"><p class="quest-name">20 хвилин активності</p><p class="quest-description">Зроби легку фізичну активність протягом двадцяти хвилин.</p><p class="quest-reward">🟢 ЛЕГКА · +15 XP</p><p class="quest-lock" hidden></p></div>
+          <button class="complete-button" type="button">ВИКОНАНО</button>
+        </article>
+        <article class="quest pool-quest" data-quest-id="pool-new-conversation" data-pool-quest="true" data-difficulty="medium" data-min-level="3" data-xp="25">
+          <div class="quest-copy"><p class="quest-name">Почни розмову з новою людиною</p><p class="quest-description">Почни коротку доброзичливу розмову.</p><p class="quest-reward">🟡 СЕРЕДНЯ · +25 XP</p><p class="quest-lock" hidden></p></div>
+          <button class="complete-button" type="button">ВИКОНАНО</button>
+        </article>
+        <article class="quest pool-quest" data-quest-id="pool-training-30" data-pool-quest="true" data-difficulty="hard" data-min-level="5" data-xp="40">
+          <div class="quest-copy"><p class="quest-name">30 хвилин тренування</p><p class="quest-description">Проведи повноцінне тренування тривалістю тридцять хвилин.</p><p class="quest-reward">🟠 СКЛАДНА · +40 XP</p><p class="quest-lock" hidden></p></div>
+          <button class="complete-button" type="button">ВИКОНАНО</button>
+        </article>
+        <article class="quest pool-quest" data-quest-id="pool-hard-challenge" data-pool-quest="true" data-difficulty="veryHard" data-min-level="8" data-xp="70">
+          <div class="quest-copy"><p class="quest-name">Складний виклик дня</p><p class="quest-description">Виконай одну справу, яку давно відкладаєш і яка потребує реального зусилля.</p><p class="quest-reward">🔴 ДУЖЕ СКЛАДНА · +70 XP</p><p class="quest-lock" hidden></p></div>
+          <button class="complete-button" type="button">ВИКОНАНО</button>
+        </article>
+      </div>
+    </section>
+
     <section class="section" aria-labelledby="stats-title">
       <p class="section-label" id="stats-title">Характеристики</p>
       <div class="stats">
@@ -710,55 +756,55 @@
     <section class="section" aria-labelledby="social-life-title">
       <p class="section-label" id="social-life-title">Соціальне життя</p>
       <div class="social-quest-list">
-        <article class="social-quest" data-quest-id="social-greet-new-person" data-social-quest="true" data-xp="10" data-social-target="new-person" data-social-goal="greeting" data-difficulty="easy">
+        <article class="social-quest" data-quest-id="social-greet-new-person" data-social-quest="true" data-xp="10" data-social-target="new-person" data-social-goal="greeting" data-difficulty="easy" data-min-level="1">
           <div class="social-quest-top"><p class="quest-name">Привітайся з новою людиною</p><span class="difficulty">ЛЕГКИЙ</span></div>
           <p class="social-quest-description">Сьогодні першим привітайся з людиною, з якою раніше не спілкувався.</p>
           <p class="quest-reward">+10 XP</p>
           <button class="complete-button" type="button">ВИКОНАНО</button>
         </article>
-        <article class="social-quest" data-quest-id="social-start-conversation" data-social-quest="true" data-xp="10" data-social-target="outside-circle" data-social-goal="conversation" data-difficulty="easy">
+        <article class="social-quest" data-quest-id="social-start-conversation" data-social-quest="true" data-xp="10" data-social-target="outside-circle" data-social-goal="conversation" data-difficulty="easy" data-min-level="1">
           <div class="social-quest-top"><p class="quest-name">Почни коротку розмову</p><span class="difficulty">ЛЕГКИЙ</span></div>
           <p class="social-quest-description">Почни невелику доброзичливу розмову з людиною поза своїм звичним колом спілкування.</p>
           <p class="quest-reward">+10 XP</p>
           <button class="complete-button" type="button">ВИКОНАНО</button>
         </article>
-        <article class="social-quest" data-quest-id="social-open-question" data-social-quest="true" data-xp="10" data-social-target="conversation-partner" data-social-goal="open-question" data-difficulty="easy">
+        <article class="social-quest" data-quest-id="social-open-question" data-social-quest="true" data-xp="10" data-social-target="conversation-partner" data-social-goal="open-question" data-difficulty="easy" data-min-level="1">
           <div class="social-quest-top"><p class="quest-name">Постав відкрите запитання</p><span class="difficulty">ЛЕГКИЙ</span></div>
           <p class="social-quest-description">Під час розмови постав запитання, на яке не можна відповісти лише «так» або «ні».</p>
           <p class="quest-reward">+10 XP</p>
           <button class="complete-button" type="button">ВИКОНАНО</button>
         </article>
-        <article class="social-quest" data-quest-id="social-meet-new-person" data-social-quest="true" data-xp="20" data-stat="charisma" data-stat-amount="1" data-social-target="new-person" data-social-goal="introduction" data-difficulty="medium">
+        <article class="social-quest" data-quest-id="social-meet-new-person" data-social-quest="true" data-xp="20" data-stat="charisma" data-stat-amount="1" data-social-target="new-person" data-social-goal="introduction" data-difficulty="medium" data-min-level="3">
           <div class="social-quest-top"><p class="quest-name">Познайомся з новою людиною</p><span class="difficulty">СЕРЕДНІЙ</span></div>
           <p class="social-quest-description">Познайомся з новою людиною та дізнайся її ім’я.</p>
           <p class="quest-reward">+20 XP, +1 ХАРИЗМА</p>
           <button class="complete-button" type="button">ВИКОНАНО</button>
         </article>
-        <article class="social-quest" data-quest-id="social-genuine-compliment" data-social-quest="true" data-xp="20" data-stat="charisma" data-stat-amount="1" data-social-target="conversation-partner" data-social-goal="compliment" data-difficulty="medium">
+        <article class="social-quest" data-quest-id="social-genuine-compliment" data-social-quest="true" data-xp="20" data-stat="charisma" data-stat-amount="1" data-social-target="conversation-partner" data-social-goal="compliment" data-difficulty="medium" data-min-level="3">
           <div class="social-quest-top"><p class="social-quest-name quest-name">Зроби щирий комплімент</p><span class="difficulty">СЕРЕДНІЙ</span></div>
           <p class="social-quest-description">Зроби людині доречний і щирий комплімент без очікування чогось у відповідь.</p>
           <p class="quest-reward">+20 XP, +1 ХАРИЗМА</p>
           <button class="complete-button" type="button">ВИКОНАНО</button>
         </article>
-        <article class="social-quest" data-quest-id="social-keep-conversation" data-social-quest="true" data-xp="20" data-stat="charisma" data-stat-amount="1" data-social-target="new-or-familiar-person" data-social-goal="conversation" data-difficulty="medium">
+        <article class="social-quest" data-quest-id="social-keep-conversation" data-social-quest="true" data-xp="20" data-stat="charisma" data-stat-amount="1" data-social-target="new-or-familiar-person" data-social-goal="conversation" data-difficulty="medium" data-min-level="3">
           <div class="social-quest-top"><p class="quest-name">Підтримай розмову</p><span class="difficulty">СЕРЕДНІЙ</span></div>
           <p class="social-quest-description">Підтримуй живу розмову з новою або малознайомою людиною щонайменше кілька хвилин.</p>
           <p class="quest-reward">+20 XP, +1 ХАРИЗМА</p>
           <button class="complete-button" type="button">ВИКОНАНО</button>
         </article>
-        <article class="social-quest" data-quest-id="social-exchange-contact" data-social-quest="true" data-xp="30" data-stat="charisma" data-stat-amount="2" data-social-target="conversation-partner" data-social-goal="contact-exchange" data-difficulty="hard">
+        <article class="social-quest" data-quest-id="social-exchange-contact" data-social-quest="true" data-xp="30" data-stat="charisma" data-stat-amount="2" data-social-target="conversation-partner" data-social-goal="contact-exchange" data-difficulty="hard" data-min-level="5">
           <div class="social-quest-top"><p class="quest-name">Обміняйся контактами</p><span class="difficulty">СКЛАДНИЙ</span></div>
           <p class="social-quest-description">Якщо спілкування взаємно приємне, запропонуй обмінятися контактами.</p>
           <p class="quest-reward">+30 XP, +2 ХАРИЗМА</p>
           <button class="complete-button" type="button">ВИКОНАНО</button>
         </article>
-        <article class="social-quest" data-quest-id="social-invite-coffee" data-social-quest="true" data-xp="30" data-stat="charisma" data-stat-amount="2" data-social-target="conversation-partner" data-social-goal="future-meeting" data-difficulty="hard">
+        <article class="social-quest" data-quest-id="social-invite-coffee" data-social-quest="true" data-xp="30" data-stat="charisma" data-stat-amount="2" data-social-target="conversation-partner" data-social-goal="future-meeting" data-difficulty="hard" data-min-level="5">
           <div class="social-quest-top"><p class="quest-name">Запроси на каву або прогулянку</p><span class="difficulty">СКЛАДНИЙ</span></div>
           <p class="social-quest-description">Запропонуй людині зустрітися ще раз — без тиску та з повагою до будь-якої відповіді.</p>
           <p class="quest-reward">+30 XP, +2 ХАРИЗМА</p>
           <button class="complete-button" type="button">ВИКОНАНО</button>
         </article>
-        <article class="social-quest" data-quest-id="social-consensual-hug" data-social-quest="true" data-xp="30" data-stat="charisma" data-stat-amount="2" data-social-target="trusted-person" data-social-goal="consensual-hug" data-difficulty="hard">
+        <article class="social-quest" data-quest-id="social-consensual-hug" data-social-quest="true" data-xp="30" data-stat="charisma" data-stat-amount="2" data-social-target="trusted-person" data-social-goal="consensual-hug" data-difficulty="hard" data-min-level="5">
           <div class="social-quest-top"><p class="quest-name">Дружні обійми</p><span class="difficulty">СКЛАДНИЙ</span></div>
           <p class="social-quest-description">Обійми людину лише якщо вона явно погоджується на це і фізичний контакт доречний у ситуації.</p>
           <p class="quest-reward">+30 XP, +2 ХАРИЗМА</p>
@@ -778,7 +824,7 @@
     <section class="section" aria-labelledby="series-title">
       <p class="section-label" id="series-title">Серії квестів</p>
       <div class="series-list">
-        <article class="series-card" data-series-id="social-start" data-series-category="social" data-difficulty="medium" data-series-stage-count="5" data-series-final-xp="100">
+        <article class="series-card" data-series-id="social-start" data-series-category="social" data-difficulty="medium" data-min-level="3" data-series-stage-count="5" data-series-final-xp="100">
           <h2>Соціальний старт</h2>
           <p class="series-description">Поступово вийди у світ нових знайомств і зроби наступний крок у спілкуванні.</p>
           <p class="series-meta">Категорія: Соціальне життя · <span class="series-difficulty"></span></p>
@@ -831,7 +877,7 @@
     <section class="section" aria-labelledby="long-term-title">
       <p class="section-label" id="long-term-title">Довгострокові квести</p>
       <div class="long-term-list">
-        <article class="long-term-card" data-long-term-id="iron-grip" data-long-term-type="TIME" data-long-term-target="14400" data-long-term-unit="час">
+        <article class="long-term-card" data-long-term-id="iron-grip" data-long-term-type="TIME" data-long-term-target="14400" data-long-term-unit="час" data-min-level="2">
           <h2>Залізна хватка</h2>
           <p class="long-term-description">Провиси на турніку загалом 4 години. Час усіх спроб накопичується.</p>
           <p class="long-term-meta">Категорія: Фізичний розвиток · Тип: TIME · Ціль: <span class="long-term-target">04:00:00</span></p>
@@ -909,7 +955,9 @@
     const longTermStorageKey = "longTermQuestProgress";
     const translations = {
       uk: {
-        completed: "ВИКОНАНО ✓"
+        available: "ВИКОНАНО",
+        completed: "✓ ВИКОНАНО",
+        locked: "🔒 ЗАБЛОКОВАНО"
       }
     };
     const language = "uk";
@@ -933,7 +981,8 @@
       seriesProgress: {},
       streak: 0,
       completedDays: [],
-      level: 1
+      level: 1,
+      unlockNoticesShown: []
     };
 
     const levelThresholds = [
@@ -941,7 +990,11 @@
       { level: 2, minimumXp: 100, nextLevelXp: 250 },
       { level: 3, minimumXp: 250, nextLevelXp: 450 },
       { level: 4, minimumXp: 450, nextLevelXp: 700 },
-      { level: 5, minimumXp: 700, nextLevelXp: 1000 }
+      { level: 5, minimumXp: 700, nextLevelXp: 1000 },
+      { level: 6, minimumXp: 1000, nextLevelXp: 1250 },
+      { level: 7, minimumXp: 1250, nextLevelXp: 1550 },
+      { level: 8, minimumXp: 1550, nextLevelXp: 1850 },
+      { level: 9, minimumXp: 1850, nextLevelXp: 2200 }
     ];
 
     const seriesDifficultyConfig = {
@@ -950,6 +1003,25 @@
       hard: { label: "🟠 Складна", stageRange: "70–120 XP" },
       veryHard: { label: "🔴 Дуже складна", stageRange: "120–200 XP" }
     };
+
+    const dailyQuestPool = [
+      { id: "pool-movement-10", title: "10 хвилин руху", category: "Фізичний розвиток", difficulty: "easy", minLevel: 1, xpReward: 10 },
+      { id: "pool-order-10", title: "Наведи порядок", category: "Дисципліна", difficulty: "easy", minLevel: 1, xpReward: 10 },
+      { id: "pool-activity-20", title: "20 хвилин активності", category: "Фізичний розвиток", difficulty: "easy", minLevel: 2, xpReward: 15 },
+      { id: "pool-new-conversation", title: "Почни розмову з новою людиною", category: "Соціальне життя", difficulty: "medium", minLevel: 3, xpReward: 25 },
+      { id: "pool-training-30", title: "30 хвилин тренування", category: "Фізичний розвиток", difficulty: "hard", minLevel: 5, xpReward: 40 },
+      { id: "pool-hard-challenge", title: "Складний виклик дня", category: "Особистий розвиток", difficulty: "veryHard", minLevel: 8, xpReward: 70 }
+    ];
+
+    function isQuestAvailable(quest, playerLevel) {
+      const minLevel = Number(quest.minLevel || 1);
+      const difficultyMinimum = { easy: 1, medium: 3, hard: 5, veryHard: 8 }[quest.difficulty] || 1;
+      return playerLevel >= minLevel && playerLevel >= difficultyMinimum;
+    }
+
+    function getAvailableDailyQuests(playerLevel) {
+      return dailyQuestPool.filter((quest) => isQuestAvailable(quest, playerLevel));
+    }
 
     let gameState = loadGameState();
     let longTermQuestProgress = loadLongTermQuestProgress();
@@ -994,7 +1066,8 @@
             : {},
           level: Number.isInteger(savedGameState.level)
             ? savedGameState.level
-            : getLevelInfo(Number(savedGameState.experience) || 0).level
+            : getLevelInfo(Number(savedGameState.experience) || 0).level,
+          unlockNoticesShown: Array.isArray(savedGameState.unlockNoticesShown) ? savedGameState.unlockNoticesShown : []
         };
       } catch {
         return { ...defaultGameState, completedQuests: [] };
@@ -1076,8 +1149,13 @@
     function updateLevel() {
       const currentLevel = getLevelInfo(gameState.experience).level;
       if (currentLevel > gameState.level) {
+        const previousLevel = gameState.level;
         gameState.level = currentLevel;
         document.querySelector("#level-up-message").hidden = false;
+        if (hasNewlyAvailableContent(previousLevel, currentLevel) && !gameState.unlockNoticesShown.includes(currentLevel)) {
+          document.querySelector("#quest-unlock-message").hidden = false;
+          gameState.unlockNoticesShown.push(currentLevel);
+        }
         saveGameState();
       }
 
@@ -1091,6 +1169,47 @@
       document.querySelector("#progress-xp").textContent = gameState.experience;
       document.querySelector("#progress-streak").textContent = streakText;
       document.querySelector("#progress-quests").textContent = gameState.completedQuestCount;
+    }
+
+    function hasNewlyAvailableContent(previousLevel, currentLevel) {
+      return [...document.querySelectorAll("[data-pool-quest], [data-series-id], [data-long-term-id]")].some((item) => {
+        const minLevel = Number(item.dataset.minLevel || 1);
+        return minLevel > previousLevel && minLevel <= currentLevel;
+      });
+    }
+
+    function setQuestLockMessage(item, isLocked) {
+      let lockMessage = item.querySelector(".quest-lock, .series-lock, .long-term-lock");
+      if (!lockMessage) {
+        lockMessage = document.createElement("p");
+        lockMessage.className = "quest-lock";
+        item.querySelector("h2, .quest-copy")?.before(lockMessage);
+      }
+
+      const minLevel = Number(item.dataset.minLevel || 1);
+      lockMessage.textContent = isLocked ? `${translations[language].locked} · Відкриється на рівні ${minLevel}` : "";
+      lockMessage.hidden = !isLocked;
+    }
+
+    function updateQuestAvailability() {
+      const playerLevel = gameState.level;
+      document.querySelectorAll("[data-quest-id]").forEach((quest) => {
+        if (quest.closest("[data-series-id]")) return;
+        const isLocked = !isQuestAvailable({ minLevel: quest.dataset.minLevel, difficulty: quest.dataset.difficulty }, playerLevel);
+        const completeButton = quest.querySelector(".complete-button");
+        quest.classList.toggle("locked", isLocked);
+        setQuestLockMessage(quest, isLocked);
+        if (isLocked) {
+          completeButton.disabled = true;
+          completeButton.textContent = translations[language].locked;
+        } else if (gameState.completedQuests.includes(quest.dataset.questId)) {
+          completeButton.disabled = true;
+          completeButton.textContent = translations[language].completed;
+        } else {
+          completeButton.disabled = false;
+          completeButton.textContent = translations[language].available;
+        }
+      });
     }
 
     function updateGameStateView() {
@@ -1108,6 +1227,7 @@
       updateProgressView();
       updateSocialProgressView();
       updateExperience();
+      updateQuestAvailability();
       updateSeriesView();
       updateLongTermQuestView();
     }
@@ -1127,27 +1247,32 @@
         const completedStages = seriesState.completedStages;
         const nextStage = completedStages.length + 1;
         const isComplete = completedStages.length === stages.length;
+        const isSeriesLocked = !isQuestAvailable({ minLevel: series.dataset.minLevel, difficulty: series.dataset.difficulty }, gameState.level);
         const difficulty = seriesDifficultyConfig[series.dataset.difficulty] || seriesDifficultyConfig.easy;
         const stageXp = stages.reduce((total, stage) => total + Number(stage.dataset.xp), 0);
 
+        setQuestLockMessage(series, isSeriesLocked);
         series.querySelector(".series-difficulty").textContent = `Складність: ${difficulty.label}`;
         series.querySelector(".series-stage-count").textContent = stages.length;
         series.querySelector(".series-total-xp").textContent = stageXp + Number(series.dataset.seriesFinalXp);
         series.querySelector(".series-final-xp").textContent = series.dataset.seriesFinalXp;
         series.querySelector(".series-progress").textContent = `Етап ${Math.min(nextStage, stages.length)}/${stages.length}`;
         series.classList.toggle("completed", isComplete);
+        series.classList.toggle("locked", isSeriesLocked);
         series.querySelector(".series-completion").hidden = !isComplete;
 
         stages.forEach((stage) => {
           const stageNumber = Number(stage.dataset.seriesStage);
           const completeButton = stage.querySelector(".complete-button");
           const isStageCompleted = completedStages.includes(stageNumber);
-          const isLocked = stageNumber !== nextStage && !isStageCompleted;
+          const isLocked = isSeriesLocked || (stageNumber !== nextStage && !isStageCompleted);
 
           stage.classList.toggle("completed", isStageCompleted);
           stage.classList.toggle("locked", isLocked);
           completeButton.disabled = isStageCompleted || isLocked;
-          if (isStageCompleted) completeButton.textContent = translations[language].completed;
+          completeButton.textContent = isLocked
+            ? translations[language].locked
+            : (isStageCompleted ? translations[language].completed : translations[language].available);
         });
       });
     }
@@ -1157,7 +1282,9 @@
       const stages = [...series.querySelectorAll("[data-series-stage]")];
       const stageNumber = Number(stage.dataset.seriesStage);
 
-      if (seriesState.completedStages.includes(stageNumber) || stageNumber !== seriesState.completedStages.length + 1) return;
+      if (!isQuestAvailable({ minLevel: series.dataset.minLevel, difficulty: series.dataset.difficulty }, gameState.level)
+        || seriesState.completedStages.includes(stageNumber)
+        || stageNumber !== seriesState.completedStages.length + 1) return;
 
       gameState.experience += Number(stage.dataset.xp);
       seriesState.completedStages.push(stageNumber);
@@ -1212,14 +1339,20 @@
         const progress = Math.min(target, Math.max(0, state.value));
         const percent = Math.floor((progress / target) * 100);
         const remaining = target - progress;
+        const isQuestLocked = !isQuestAvailable({ minLevel: quest.dataset.minLevel, difficulty: quest.dataset.difficulty }, gameState.level);
 
+        setQuestLockMessage(quest, isQuestLocked);
         quest.querySelector(".long-term-completed").textContent = formatDuration(progress);
         quest.querySelector(".long-term-remaining").textContent = formatDuration(remaining);
         quest.querySelector(".long-term-percent-value").textContent = `${percent}%`;
         quest.querySelector(".long-term-fill").style.width = `${percent}%`;
         quest.querySelector(".long-term-progress").setAttribute("aria-valuenow", percent);
         quest.classList.toggle("completed", state.completed);
-        quest.querySelector(".long-term-add").disabled = state.completed;
+        quest.classList.toggle("locked", isQuestLocked);
+        quest.querySelector(".long-term-add").disabled = state.completed || isQuestLocked;
+        quest.querySelector(".long-term-add").textContent = isQuestLocked
+          ? translations[language].locked
+          : (state.completed ? translations[language].completed : "ДОДАТИ ПРОГРЕС");
         quest.querySelector(".long-term-completion").hidden = !state.completed;
       });
     }
@@ -1274,7 +1407,7 @@
       const input = readLongTermProgress(quest, definition);
 
       error.textContent = "";
-      if (state.completed) return;
+      if (state.completed || !isQuestAvailable({ minLevel: quest.dataset.minLevel, difficulty: quest.dataset.difficulty }, gameState.level)) return;
       if (input.error) {
         error.textContent = input.error;
         return;
@@ -1327,7 +1460,9 @@
       }
 
       completeButton.addEventListener("click", () => {
-        if (completeButton.disabled || gameState.completedQuests.includes(questId)) return;
+        if (completeButton.disabled
+          || !isQuestAvailable({ minLevel: quest.dataset.minLevel, difficulty: quest.dataset.difficulty }, gameState.level)
+          || gameState.completedQuests.includes(questId)) return;
 
         gameState.experience += Number(quest.dataset.xp);
         if (quest.dataset.stat) {
