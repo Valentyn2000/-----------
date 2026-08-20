@@ -536,15 +536,33 @@
         <p class="day-quest-reward">НАГОРОДА: +10 XP</p>
         <button class="complete-button" type="button">ВИКОНАНО</button>
       </div>
+      <div class="day-quest" data-quest-id="day-1-movement" data-xp="15" data-stat="endurance" data-stat-amount="1">
+        <h2 class="day-quest-title">Рух</h2>
+        <p class="day-quest-task">Завдання: пройтися або зробити легку фізичну активність не менше 20 хвилин.</p>
+        <p class="day-quest-reward">НАГОРОДА: +15 XP, +1 ВИТРИВАЛІСТЬ</p>
+        <button class="complete-button" type="button">ВИКОНАНО</button>
+      </div>
+      <div class="day-quest" data-quest-id="day-1-order" data-xp="10" data-stat="discipline" data-stat-amount="1">
+        <h2 class="day-quest-title">Порядок</h2>
+        <p class="day-quest-task">Завдання: прибрати одну невелику зону вдома.</p>
+        <p class="day-quest-reward">НАГОРОДА: +10 XP, +1 ДИСЦИПЛІНА</p>
+        <button class="complete-button" type="button">ВИКОНАНО</button>
+      </div>
+      <div class="day-quest" data-quest-id="day-1-no-scroll" data-xp="15" data-state="mood" data-state-amount="5">
+        <h2 class="day-quest-title">Без зайвого скролу</h2>
+        <p class="day-quest-task">Завдання: провести щонайменше 1 годину без TikTok, Shorts або Reels.</p>
+        <p class="day-quest-reward">НАГОРОДА: +15 XP, +5 НАСТРОЮ</p>
+        <button class="complete-button" type="button">ВИКОНАНО</button>
+      </div>
     </section>
 
     <section class="section" aria-labelledby="stats-title">
       <p class="section-label" id="stats-title">Характеристики</p>
       <div class="stats">
-        <div class="stat"><span class="stat-name">Сила</span><strong class="stat-value">1</strong></div>
-        <div class="stat"><span class="stat-name">Витривалість</span><strong class="stat-value">1</strong></div>
-        <div class="stat"><span class="stat-name">Швидкість</span><strong class="stat-value">1</strong></div>
-        <div class="stat"><span class="stat-name">Дисципліна</span><strong class="stat-value">1</strong></div>
+        <div class="stat"><span class="stat-name">Сила</span><strong class="stat-value" id="strength-value">1</strong></div>
+        <div class="stat"><span class="stat-name">Витривалість</span><strong class="stat-value" id="endurance-value">1</strong></div>
+        <div class="stat"><span class="stat-name">Швидкість</span><strong class="stat-value" id="speed-value">1</strong></div>
+        <div class="stat"><span class="stat-name">Дисципліна</span><strong class="stat-value" id="discipline-value">1</strong></div>
       </div>
     </section>
 
@@ -599,7 +617,7 @@
     const gameStorageKey = "life-game-state";
     const translations = {
       uk: {
-        completed: "ЗАРАХОВАНО"
+        completed: "ВИКОНАНО ✓"
       }
     };
     const language = "uk";
@@ -610,6 +628,12 @@
       mood: 100,
       day: 1,
       experience: 0,
+      stats: {
+        strength: 1,
+        endurance: 1,
+        speed: 1,
+        discipline: 1
+      },
       completedQuests: []
     };
 
@@ -628,7 +652,13 @@
       if (!savedState) return { ...defaultGameState, completedQuests: [] };
 
       try {
-        return { ...defaultGameState, ...JSON.parse(savedState) };
+        const savedGameState = JSON.parse(savedState);
+        return {
+          ...defaultGameState,
+          ...savedGameState,
+          stats: { ...defaultGameState.stats, ...(savedGameState.stats || {}) },
+          completedQuests: Array.isArray(savedGameState.completedQuests) ? savedGameState.completedQuests : []
+        };
       } catch {
         return { ...defaultGameState, completedQuests: [] };
       }
@@ -677,35 +707,16 @@
       document.querySelector("#energy-value").textContent = `${gameState.energy} / 100`;
       document.querySelector("#mood-value").textContent = `${gameState.mood} / 100`;
       document.querySelector(".today-date").textContent = `ДЕНЬ ${String(gameState.day).padStart(2, "0")}`;
+      document.querySelector("#strength-value").textContent = gameState.stats.strength;
+      document.querySelector("#endurance-value").textContent = gameState.stats.endurance;
+      document.querySelector("#speed-value").textContent = gameState.stats.speed;
+      document.querySelector("#discipline-value").textContent = gameState.stats.discipline;
       updateExperience();
     }
 
     awakeningButton.addEventListener("click", () => {
       awakeningContent.hidden = false;
       awakeningButton.hidden = true;
-    });
-
-    document.querySelectorAll(".quest").forEach((quest) => {
-      const questId = quest.dataset.questId;
-      const completeButton = quest.querySelector(".complete-button");
-
-      if (gameState.completedQuests.includes(questId)) {
-        quest.classList.add("completed");
-        completeButton.disabled = true;
-        completeButton.textContent = translations[language].completed;
-      }
-
-      completeButton.addEventListener("click", () => {
-        if (completeButton.disabled || gameState.completedQuests.includes(questId)) return;
-
-        gameState.experience = Math.min(100, gameState.experience + Number(quest.dataset.xp));
-        gameState.completedQuests.push(questId);
-        quest.classList.add("completed");
-        completeButton.disabled = true;
-        completeButton.textContent = translations[language].completed;
-        saveGameState();
-        updateExperience();
-      });
     });
 
     document.querySelectorAll("[data-quest-id]").forEach((quest) => {
@@ -723,12 +734,18 @@
         if (completeButton.disabled || gameState.completedQuests.includes(questId)) return;
 
         gameState.experience = Math.min(100, gameState.experience + Number(quest.dataset.xp));
+        if (quest.dataset.stat) {
+          gameState.stats[quest.dataset.stat] += Number(quest.dataset.statAmount);
+        }
+        if (quest.dataset.state) {
+          gameState[quest.dataset.state] = Math.min(100, gameState[quest.dataset.state] + Number(quest.dataset.stateAmount));
+        }
         gameState.completedQuests.push(questId);
         quest.classList.add("completed");
         completeButton.disabled = true;
         completeButton.textContent = translations[language].completed;
         saveGameState();
-        updateExperience();
+        updateGameStateView();
       });
     });
 
