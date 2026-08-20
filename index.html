@@ -164,6 +164,127 @@
 
     .progress-panel strong { color: var(--accent); }
 
+    .social-quest-list { display: grid; gap: 8px; }
+
+    .social-quest {
+      padding: 15px 16px;
+      border: 1px solid var(--line);
+      background: rgba(17, 24, 23, .78);
+    }
+
+    .social-quest.completed { opacity: .55; }
+    .social-quest.completed .quest-name { text-decoration: line-through; }
+
+    .social-quest-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .difficulty {
+      flex: 0 0 auto;
+      color: var(--orange);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .1em;
+    }
+
+    .social-quest-description {
+      margin: 0 0 13px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .social-quest .complete-button { width: 100%; }
+
+    .series-list { display: grid; gap: 12px; }
+
+    .series-card {
+      padding: 17px 16px;
+      border: 1px solid #526843;
+      border-left: 3px solid var(--accent);
+      background: rgba(48, 74, 35, .24);
+    }
+
+    .series-card.completed { opacity: .62; }
+
+    .series-card h2 {
+      margin: 0 0 7px;
+      color: var(--accent);
+      font-size: 19px;
+    }
+
+    .series-description {
+      margin: 0 0 7px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .series-meta {
+      margin: 0 0 14px;
+      color: var(--text);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .06em;
+    }
+
+    .series-stage-list { display: grid; gap: 8px; }
+
+    .series-stage {
+      padding: 12px 13px;
+      border: 1px solid var(--line);
+      background: rgba(17, 24, 23, .78);
+    }
+
+    .series-stage.locked { opacity: .48; }
+    .series-stage.completed { opacity: .58; }
+    .series-stage.completed .quest-name { text-decoration: line-through; }
+
+    .series-stage-title {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 5px;
+    }
+
+    .series-stage-title .quest-name { margin-bottom: 0; }
+    .series-stage-number { color: var(--muted); font-size: 10px; font-weight: 700; }
+    .series-stage-description { margin: 0 0 8px; color: var(--muted); font-size: 11px; line-height: 1.45; }
+    .series-stage .quest-reward { margin-bottom: 10px; }
+    .series-stage .complete-button { width: 100%; }
+    .series-completion { margin: 12px 0 0; color: var(--accent); font-size: 11px; font-weight: 700; letter-spacing: .08em; }
+
+    .long-term-list { display: grid; gap: 12px; }
+
+    .long-term-card {
+      padding: 17px 16px;
+      border: 1px solid #526843;
+      border-left: 3px solid var(--orange);
+      background: rgba(50, 35, 22, .42);
+    }
+
+    .long-term-card.completed { opacity: .62; }
+    .long-term-card h2 { margin: 0 0 7px; color: var(--accent); font-size: 19px; }
+    .long-term-description { margin: 0 0 7px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+    .long-term-meta { margin: 0 0 12px; color: var(--text); font-size: 11px; font-weight: 700; line-height: 1.6; }
+    .long-term-values { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+    .long-term-value { padding: 10px; border: 1px solid var(--line); background: rgba(17, 24, 23, .78); }
+    .long-term-value span { display: block; margin-bottom: 4px; color: var(--muted); font-size: 9px; letter-spacing: .08em; text-transform: uppercase; }
+    .long-term-value strong { color: var(--text); font-size: 14px; }
+    .long-term-percent { margin: 0 0 7px; color: var(--accent); font-size: 11px; font-weight: 700; }
+    .long-term-progress { height: 8px; margin-bottom: 14px; padding: 2px; border: 1px solid var(--line); background: #080b0b; }
+    .long-term-fill { width: 0; height: 100%; background: var(--orange); box-shadow: 0 0 10px rgba(242, 166, 90, .5); }
+    .long-term-milestones { margin: 0 0 13px; color: var(--muted); font-size: 10px; line-height: 1.6; }
+    .time-inputs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px; }
+    .time-input label { display: block; color: var(--muted); font-size: 9px; letter-spacing: .08em; text-transform: uppercase; }
+    .time-input input { width: 100%; min-height: 38px; margin-top: 5px; padding: 0 8px; border: 1px solid var(--line); color: var(--text); background: #0b100f; font: inherit; }
+    .long-term-error { min-height: 17px; margin: 0 0 8px; color: var(--orange); font-size: 10px; }
+    .long-term-card .complete-button { width: 100%; }
+
     .quest-list { display: grid; gap: 8px; }
 
     .quest {
@@ -582,6 +703,121 @@
         <div class="stat"><span class="stat-name">Витривалість</span><strong class="stat-value" id="endurance-value">1</strong></div>
         <div class="stat"><span class="stat-name">Швидкість</span><strong class="stat-value" id="speed-value">1</strong></div>
         <div class="stat"><span class="stat-name">Дисципліна</span><strong class="stat-value" id="discipline-value">1</strong></div>
+        <div class="stat"><span class="stat-name">Харизма</span><strong class="stat-value" id="charisma-value">0</strong></div>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="social-life-title">
+      <p class="section-label" id="social-life-title">Соціальне життя</p>
+      <div class="social-quest-list">
+        <article class="social-quest" data-quest-id="social-greet-new-person" data-social-quest="true" data-xp="10" data-social-target="new-person" data-social-goal="greeting" data-difficulty="easy">
+          <div class="social-quest-top"><p class="quest-name">Привітайся з новою людиною</p><span class="difficulty">ЛЕГКИЙ</span></div>
+          <p class="social-quest-description">Сьогодні першим привітайся з людиною, з якою раніше не спілкувався.</p>
+          <p class="quest-reward">+10 XP</p>
+          <button class="complete-button" type="button">ВИКОНАНО</button>
+        </article>
+        <article class="social-quest" data-quest-id="social-start-conversation" data-social-quest="true" data-xp="10" data-social-target="outside-circle" data-social-goal="conversation" data-difficulty="easy">
+          <div class="social-quest-top"><p class="quest-name">Почни коротку розмову</p><span class="difficulty">ЛЕГКИЙ</span></div>
+          <p class="social-quest-description">Почни невелику доброзичливу розмову з людиною поза своїм звичним колом спілкування.</p>
+          <p class="quest-reward">+10 XP</p>
+          <button class="complete-button" type="button">ВИКОНАНО</button>
+        </article>
+        <article class="social-quest" data-quest-id="social-open-question" data-social-quest="true" data-xp="10" data-social-target="conversation-partner" data-social-goal="open-question" data-difficulty="easy">
+          <div class="social-quest-top"><p class="quest-name">Постав відкрите запитання</p><span class="difficulty">ЛЕГКИЙ</span></div>
+          <p class="social-quest-description">Під час розмови постав запитання, на яке не можна відповісти лише «так» або «ні».</p>
+          <p class="quest-reward">+10 XP</p>
+          <button class="complete-button" type="button">ВИКОНАНО</button>
+        </article>
+        <article class="social-quest" data-quest-id="social-meet-new-person" data-social-quest="true" data-xp="20" data-stat="charisma" data-stat-amount="1" data-social-target="new-person" data-social-goal="introduction" data-difficulty="medium">
+          <div class="social-quest-top"><p class="quest-name">Познайомся з новою людиною</p><span class="difficulty">СЕРЕДНІЙ</span></div>
+          <p class="social-quest-description">Познайомся з новою людиною та дізнайся її ім’я.</p>
+          <p class="quest-reward">+20 XP, +1 ХАРИЗМА</p>
+          <button class="complete-button" type="button">ВИКОНАНО</button>
+        </article>
+        <article class="social-quest" data-quest-id="social-genuine-compliment" data-social-quest="true" data-xp="20" data-stat="charisma" data-stat-amount="1" data-social-target="conversation-partner" data-social-goal="compliment" data-difficulty="medium">
+          <div class="social-quest-top"><p class="social-quest-name quest-name">Зроби щирий комплімент</p><span class="difficulty">СЕРЕДНІЙ</span></div>
+          <p class="social-quest-description">Зроби людині доречний і щирий комплімент без очікування чогось у відповідь.</p>
+          <p class="quest-reward">+20 XP, +1 ХАРИЗМА</p>
+          <button class="complete-button" type="button">ВИКОНАНО</button>
+        </article>
+        <article class="social-quest" data-quest-id="social-keep-conversation" data-social-quest="true" data-xp="20" data-stat="charisma" data-stat-amount="1" data-social-target="new-or-familiar-person" data-social-goal="conversation" data-difficulty="medium">
+          <div class="social-quest-top"><p class="quest-name">Підтримай розмову</p><span class="difficulty">СЕРЕДНІЙ</span></div>
+          <p class="social-quest-description">Підтримуй живу розмову з новою або малознайомою людиною щонайменше кілька хвилин.</p>
+          <p class="quest-reward">+20 XP, +1 ХАРИЗМА</p>
+          <button class="complete-button" type="button">ВИКОНАНО</button>
+        </article>
+        <article class="social-quest" data-quest-id="social-exchange-contact" data-social-quest="true" data-xp="30" data-stat="charisma" data-stat-amount="2" data-social-target="conversation-partner" data-social-goal="contact-exchange" data-difficulty="hard">
+          <div class="social-quest-top"><p class="quest-name">Обміняйся контактами</p><span class="difficulty">СКЛАДНИЙ</span></div>
+          <p class="social-quest-description">Якщо спілкування взаємно приємне, запропонуй обмінятися контактами.</p>
+          <p class="quest-reward">+30 XP, +2 ХАРИЗМА</p>
+          <button class="complete-button" type="button">ВИКОНАНО</button>
+        </article>
+        <article class="social-quest" data-quest-id="social-invite-coffee" data-social-quest="true" data-xp="30" data-stat="charisma" data-stat-amount="2" data-social-target="conversation-partner" data-social-goal="future-meeting" data-difficulty="hard">
+          <div class="social-quest-top"><p class="quest-name">Запроси на каву або прогулянку</p><span class="difficulty">СКЛАДНИЙ</span></div>
+          <p class="social-quest-description">Запропонуй людині зустрітися ще раз — без тиску та з повагою до будь-якої відповіді.</p>
+          <p class="quest-reward">+30 XP, +2 ХАРИЗМА</p>
+          <button class="complete-button" type="button">ВИКОНАНО</button>
+        </article>
+        <article class="social-quest" data-quest-id="social-consensual-hug" data-social-quest="true" data-xp="30" data-stat="charisma" data-stat-amount="2" data-social-target="trusted-person" data-social-goal="consensual-hug" data-difficulty="hard">
+          <div class="social-quest-top"><p class="quest-name">Дружні обійми</p><span class="difficulty">СКЛАДНИЙ</span></div>
+          <p class="social-quest-description">Обійми людину лише якщо вона явно погоджується на це і фізичний контакт доречний у ситуації.</p>
+          <p class="quest-reward">+30 XP, +2 ХАРИЗМА</p>
+          <button class="complete-button" type="button">ВИКОНАНО</button>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="social-progress-title">
+      <p class="section-label" id="social-progress-title">Соціальний прогрес</p>
+      <div class="progress-panel">
+        Харизма: <strong id="social-charisma">0</strong><br>
+        Виконано соціальних квестів: <strong id="social-quests-completed">0</strong>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="series-title">
+      <p class="section-label" id="series-title">Серії квестів</p>
+      <div class="series-list">
+        <article class="series-card" data-series-id="social-start" data-series-category="social" data-difficulty="medium" data-series-stage-count="5" data-series-final-xp="100">
+          <h2>Соціальний старт</h2>
+          <p class="series-description">Поступово вийди у світ нових знайомств і зроби наступний крок у спілкуванні.</p>
+          <p class="series-meta">Категорія: Соціальне життя · <span class="series-difficulty"></span></p>
+          <p class="series-meta">Етапів: <span class="series-stage-count">5</span> · <span class="series-progress">Етап 1/5</span></p>
+          <div class="series-stage-list">
+            <div class="series-stage" data-series-stage="1" data-xp="25">
+              <div class="series-stage-title"><p class="quest-name">Вийти у люди</p><span class="series-stage-number">ЕТАП 1</span></div>
+              <p class="series-stage-description">Провести щонайменше 20 хвилин у громадському місці.</p>
+              <p class="quest-reward">+25 XP</p>
+              <button class="complete-button" type="button">ВИКОНАНО</button>
+            </div>
+            <div class="series-stage" data-series-stage="2" data-xp="35">
+              <div class="series-stage-title"><p class="quest-name">Перший контакт</p><span class="series-stage-number">ЕТАП 2</span></div>
+              <p class="series-stage-description">Привітатися або коротко заговорити з незнайомою людиною.</p>
+              <p class="quest-reward">+35 XP</p>
+              <button class="complete-button" type="button">ВИКОНАНО</button>
+            </div>
+            <div class="series-stage" data-series-stage="3" data-xp="45">
+              <div class="series-stage-title"><p class="quest-name">Нова розмова</p><span class="series-stage-number">ЕТАП 3</span></div>
+              <p class="series-stage-description">Підтримати розмову з новою людиною хоча б кілька хвилин.</p>
+              <p class="quest-reward">+45 XP</p>
+              <button class="complete-button" type="button">ВИКОНАНО</button>
+            </div>
+            <div class="series-stage" data-series-stage="4" data-xp="60">
+              <div class="series-stage-title"><p class="quest-name">Нове знайомство</p><span class="series-stage-number">ЕТАП 4</span></div>
+              <p class="series-stage-description">Познайомитися з новою людиною та дізнатися її ім’я.</p>
+              <p class="quest-reward">+60 XP</p>
+              <button class="complete-button" type="button">ВИКОНАНО</button>
+            </div>
+            <div class="series-stage" data-series-stage="5" data-xp="80">
+              <div class="series-stage-title"><p class="quest-name">Зробити наступний крок</p><span class="series-stage-number">ЕТАП 5</span></div>
+              <p class="series-stage-description">За взаємної згоди обмінятися контактом або домовитися поспілкуватися чи зустрітися ще раз.</p>
+              <p class="quest-reward">+80 XP</p>
+              <button class="complete-button" type="button">ВИКОНАНО</button>
+            </div>
+          </div>
+          <p class="quest-reward">ЗАГАЛЬНА НАГОРОДА: <span class="series-total-xp">345</span> XP · ФІНАЛЬНИЙ БОНУС: +<span class="series-final-xp">100</span> XP</p>
+          <p class="series-completion" hidden>СЕРІЮ ЗАВЕРШЕНО ✓</p>
+        </article>
       </div>
     </section>
 
@@ -589,6 +825,32 @@
       <div class="streak">
         <p class="streak-title">Серія</p>
         <p id="streak-count" class="streak-count">0 днів</p>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="long-term-title">
+      <p class="section-label" id="long-term-title">Довгострокові квести</p>
+      <div class="long-term-list">
+        <article class="long-term-card" data-long-term-id="iron-grip" data-long-term-type="TIME" data-long-term-target="14400" data-long-term-unit="час">
+          <h2>Залізна хватка</h2>
+          <p class="long-term-description">Провиси на турніку загалом 4 години. Час усіх спроб накопичується.</p>
+          <p class="long-term-meta">Категорія: Фізичний розвиток · Тип: TIME · Ціль: <span class="long-term-target">04:00:00</span></p>
+          <div class="long-term-values">
+            <div class="long-term-value"><span>Виконано</span><strong class="long-term-completed">00:00:00</strong></div>
+            <div class="long-term-value"><span>Залишилося</span><strong class="long-term-remaining">04:00:00</strong></div>
+          </div>
+          <p class="long-term-percent">Виконано: <span class="long-term-percent-value">0%</span></p>
+          <div class="long-term-progress" role="progressbar" aria-label="Прогрес довгострокового квесту" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"><div class="long-term-fill"></div></div>
+          <p class="long-term-milestones">Milestones: 1:00:00 +50 XP · 2:00:00 +75 XP · 3:00:00 +100 XP · 4:00:00 +200 XP, +2 Витривалість</p>
+          <div class="time-inputs">
+            <div class="time-input"><label for="iron-grip-hours">Години</label><input id="iron-grip-hours" class="long-term-input" data-time-part="hours" type="number" min="0" step="1" value="0"></div>
+            <div class="time-input"><label for="iron-grip-minutes">Хвилини</label><input id="iron-grip-minutes" class="long-term-input" data-time-part="minutes" type="number" min="0" max="59" step="1" value="0"></div>
+            <div class="time-input"><label for="iron-grip-seconds">Секунди</label><input id="iron-grip-seconds" class="long-term-input" data-time-part="seconds" type="number" min="0" max="59" step="1" value="0"></div>
+          </div>
+          <p class="long-term-error" aria-live="polite"></p>
+          <button class="complete-button long-term-add" type="button">ДОДАТИ ПРОГРЕС</button>
+          <p class="series-completion long-term-completion" hidden>ВИКОНАНО ✓</p>
+        </article>
       </div>
     </section>
 
@@ -644,6 +906,7 @@
   <script>
     const characterStorageKey = "life-game-character";
     const gameStorageKey = "life-game-state";
+    const longTermStorageKey = "longTermQuestProgress";
     const translations = {
       uk: {
         completed: "ВИКОНАНО ✓"
@@ -661,10 +924,13 @@
         strength: 1,
         endurance: 1,
         speed: 1,
-        discipline: 1
+        discipline: 1,
+        charisma: 0
       },
       completedQuests: [],
       completedQuestCount: 0,
+      completedSocialQuestCount: 0,
+      seriesProgress: {},
       streak: 0,
       completedDays: [],
       level: 1
@@ -678,7 +944,16 @@
       { level: 5, minimumXp: 700, nextLevelXp: 1000 }
     ];
 
+    const seriesDifficultyConfig = {
+      easy: { label: "🟢 Легка", stageRange: "20–40 XP" },
+      medium: { label: "🟡 Середня", stageRange: "40–70 XP" },
+      hard: { label: "🟠 Складна", stageRange: "70–120 XP" },
+      veryHard: { label: "🔴 Дуже складна", stageRange: "120–200 XP" }
+    };
+
     let gameState = loadGameState();
+    let longTermQuestProgress = loadLongTermQuestProgress();
+    let longTermQuestDefinitions;
 
     const characterScreen = document.querySelector("#character-screen");
     const characterForm = document.querySelector("#character-form");
@@ -703,6 +978,20 @@
           completedQuestCount: Number.isFinite(savedGameState.completedQuestCount)
             ? savedGameState.completedQuestCount
             : (Array.isArray(savedGameState.completedQuests) ? savedGameState.completedQuests.length : 0),
+          completedSocialQuestCount: Number.isFinite(savedGameState.completedSocialQuestCount)
+            ? savedGameState.completedSocialQuestCount
+            : (Array.isArray(savedGameState.completedQuests)
+              ? savedGameState.completedQuests.filter((questId) => questId.startsWith("social-")).length
+              : 0),
+          seriesProgress: savedGameState.seriesProgress && typeof savedGameState.seriesProgress === "object"
+            ? Object.fromEntries(Object.entries(savedGameState.seriesProgress).map(([seriesId, seriesState]) => [
+              seriesId,
+              {
+                completedStages: Array.isArray(seriesState?.completedStages) ? seriesState.completedStages : [],
+                finalRewardClaimed: seriesState?.finalRewardClaimed === true
+              }
+            ]))
+            : {},
           level: Number.isInteger(savedGameState.level)
             ? savedGameState.level
             : getLevelInfo(Number(savedGameState.experience) || 0).level
@@ -714,6 +1003,32 @@
 
     function saveGameState() {
       localStorage.setItem(gameStorageKey, JSON.stringify(gameState));
+    }
+
+    function loadLongTermQuestProgress() {
+      const savedProgress = localStorage.getItem(longTermStorageKey);
+      if (!savedProgress) return {};
+
+      try {
+        const parsedProgress = JSON.parse(savedProgress);
+        if (!parsedProgress || typeof parsedProgress !== "object") return {};
+
+        return Object.fromEntries(Object.entries(parsedProgress).map(([questId, progress]) => [
+          questId,
+          {
+            value: Number.isFinite(progress?.value) && progress.value >= 0 ? progress.value : 0,
+            claimedMilestones: Array.isArray(progress?.claimedMilestones) ? progress.claimedMilestones : [],
+            completed: progress?.completed === true,
+            finalRewardClaimed: progress?.finalRewardClaimed === true
+          }
+        ]));
+      } catch {
+        return {};
+      }
+    }
+
+    function saveLongTermQuestProgress() {
+      localStorage.setItem(longTermStorageKey, JSON.stringify(longTermQuestProgress));
     }
 
     function showGame(character) {
@@ -788,9 +1103,199 @@
       document.querySelector("#endurance-value").textContent = gameState.stats.endurance;
       document.querySelector("#speed-value").textContent = gameState.stats.speed;
       document.querySelector("#discipline-value").textContent = gameState.stats.discipline;
+      document.querySelector("#charisma-value").textContent = gameState.stats.charisma;
       updateLevel();
       updateProgressView();
+      updateSocialProgressView();
       updateExperience();
+      updateSeriesView();
+      updateLongTermQuestView();
+    }
+
+    function getSeriesState(seriesId) {
+      if (!gameState.seriesProgress[seriesId]) {
+        gameState.seriesProgress[seriesId] = { completedStages: [], finalRewardClaimed: false };
+      }
+
+      return gameState.seriesProgress[seriesId];
+    }
+
+    function updateSeriesView() {
+      document.querySelectorAll("[data-series-id]").forEach((series) => {
+        const seriesState = getSeriesState(series.dataset.seriesId);
+        const stages = [...series.querySelectorAll("[data-series-stage]")];
+        const completedStages = seriesState.completedStages;
+        const nextStage = completedStages.length + 1;
+        const isComplete = completedStages.length === stages.length;
+        const difficulty = seriesDifficultyConfig[series.dataset.difficulty] || seriesDifficultyConfig.easy;
+        const stageXp = stages.reduce((total, stage) => total + Number(stage.dataset.xp), 0);
+
+        series.querySelector(".series-difficulty").textContent = `Складність: ${difficulty.label}`;
+        series.querySelector(".series-stage-count").textContent = stages.length;
+        series.querySelector(".series-total-xp").textContent = stageXp + Number(series.dataset.seriesFinalXp);
+        series.querySelector(".series-final-xp").textContent = series.dataset.seriesFinalXp;
+        series.querySelector(".series-progress").textContent = `Етап ${Math.min(nextStage, stages.length)}/${stages.length}`;
+        series.classList.toggle("completed", isComplete);
+        series.querySelector(".series-completion").hidden = !isComplete;
+
+        stages.forEach((stage) => {
+          const stageNumber = Number(stage.dataset.seriesStage);
+          const completeButton = stage.querySelector(".complete-button");
+          const isStageCompleted = completedStages.includes(stageNumber);
+          const isLocked = stageNumber !== nextStage && !isStageCompleted;
+
+          stage.classList.toggle("completed", isStageCompleted);
+          stage.classList.toggle("locked", isLocked);
+          completeButton.disabled = isStageCompleted || isLocked;
+          if (isStageCompleted) completeButton.textContent = translations[language].completed;
+        });
+      });
+    }
+
+    function completeSeriesStage(series, stage) {
+      const seriesState = getSeriesState(series.dataset.seriesId);
+      const stages = [...series.querySelectorAll("[data-series-stage]")];
+      const stageNumber = Number(stage.dataset.seriesStage);
+
+      if (seriesState.completedStages.includes(stageNumber) || stageNumber !== seriesState.completedStages.length + 1) return;
+
+      gameState.experience += Number(stage.dataset.xp);
+      seriesState.completedStages.push(stageNumber);
+      gameState.completedQuestCount += 1;
+
+      if (seriesState.completedStages.length === stages.length && !seriesState.finalRewardClaimed) {
+        gameState.experience += Number(series.dataset.seriesFinalXp);
+        seriesState.finalRewardClaimed = true;
+      }
+
+      saveGameState();
+      updateGameStateView();
+    }
+
+    longTermQuestDefinitions = {
+      "iron-grip": {
+        type: "TIME",
+        target: 14400,
+        milestones: [
+          { id: "25", threshold: 3600, xp: 50 },
+          { id: "50", threshold: 7200, xp: 75 },
+          { id: "75", threshold: 10800, xp: 100 },
+          { id: "100", threshold: 14400, xp: 200, stat: "endurance", statAmount: 2 }
+        ]
+      }
+    };
+
+    function getLongTermQuestState(questId) {
+      if (!longTermQuestProgress[questId]) {
+        longTermQuestProgress[questId] = { value: 0, claimedMilestones: [], completed: false, finalRewardClaimed: false };
+      }
+
+      return longTermQuestProgress[questId];
+    }
+
+    function formatDuration(totalSeconds) {
+      const safeSeconds = Math.max(0, Math.floor(totalSeconds));
+      const hours = Math.floor(safeSeconds / 3600);
+      const minutes = Math.floor((safeSeconds % 3600) / 60);
+      const seconds = safeSeconds % 60;
+      return [hours, minutes, seconds].map((part) => String(part).padStart(2, "0")).join(":");
+    }
+
+    function updateLongTermQuestView() {
+      if (!longTermQuestDefinitions) return;
+
+      document.querySelectorAll("[data-long-term-id]").forEach((quest) => {
+        const questId = quest.dataset.longTermId;
+        const definition = longTermQuestDefinitions[questId];
+        const state = getLongTermQuestState(questId);
+        const target = definition.target;
+        const progress = Math.min(target, Math.max(0, state.value));
+        const percent = Math.floor((progress / target) * 100);
+        const remaining = target - progress;
+
+        quest.querySelector(".long-term-completed").textContent = formatDuration(progress);
+        quest.querySelector(".long-term-remaining").textContent = formatDuration(remaining);
+        quest.querySelector(".long-term-percent-value").textContent = `${percent}%`;
+        quest.querySelector(".long-term-fill").style.width = `${percent}%`;
+        quest.querySelector(".long-term-progress").setAttribute("aria-valuenow", percent);
+        quest.classList.toggle("completed", state.completed);
+        quest.querySelector(".long-term-add").disabled = state.completed;
+        quest.querySelector(".long-term-completion").hidden = !state.completed;
+      });
+    }
+
+    function readTimeProgress(quest) {
+      const parts = ["hours", "minutes", "seconds"].map((part) => quest.querySelector(`[data-time-part="${part}"]`));
+      const values = parts.map((input) => input.value.trim());
+      if (values.some((value) => value === "" || !/^\d+$/.test(value))) return { error: "Введи коректні цілі числа часу." };
+
+      const [hours, minutes, seconds] = values.map(Number);
+      if (minutes > 59 || seconds > 59) return { error: "Хвилини та секунди мають бути від 0 до 59." };
+      if (![hours, minutes, seconds].every(Number.isFinite)) return { error: "Введи коректний час." };
+
+      return { seconds: hours * 3600 + minutes * 60 + seconds };
+    }
+
+    function readLongTermProgress(quest, definition) {
+      if (definition.type === "TIME") return readTimeProgress(quest);
+
+      const input = quest.querySelector(".long-term-input");
+      const rawValue = input?.value.trim() || "";
+      if (!/^\d+(\.\d+)?$/.test(rawValue)) return { error: "Введи коректне додатне число." };
+
+      const value = Number(rawValue);
+      if (!Number.isFinite(value) || value <= 0) return { error: "Додай додатне значення прогресу." };
+      if (["COUNT", "PAGES", "SESSIONS"].includes(definition.type) && !Number.isInteger(value)) {
+        return { error: "Для цього типу введи ціле число." };
+      }
+
+      return { value };
+    }
+
+    function applyLongTermMilestones(definition, state) {
+      definition.milestones.forEach((milestone) => {
+        if (state.value < milestone.threshold || state.claimedMilestones.includes(milestone.id)) return;
+
+        gameState.experience += milestone.xp;
+        if (milestone.stat) gameState.stats[milestone.stat] += milestone.statAmount;
+        state.claimedMilestones.push(milestone.id);
+        if (milestone.threshold === definition.target) {
+          state.finalRewardClaimed = true;
+          state.completed = true;
+        }
+      });
+    }
+
+    function addLongTermProgress(quest) {
+      const questId = quest.dataset.longTermId;
+      const definition = longTermQuestDefinitions[questId];
+      const state = getLongTermQuestState(questId);
+      const error = quest.querySelector(".long-term-error");
+      const input = readLongTermProgress(quest, definition);
+
+      error.textContent = "";
+      if (state.completed) return;
+      if (input.error) {
+        error.textContent = input.error;
+        return;
+      }
+      const addedValue = definition.type === "TIME" ? input.seconds : input.value;
+      if (!Number.isFinite(addedValue) || addedValue <= 0) {
+        error.textContent = "Додай додатне значення прогресу.";
+        return;
+      }
+
+      state.value = Math.min(definition.target, state.value + addedValue);
+      applyLongTermMilestones(definition, state);
+      saveLongTermQuestProgress();
+      saveGameState();
+      quest.querySelectorAll(".long-term-input").forEach((field) => { field.value = "0"; });
+      updateGameStateView();
+    }
+
+    function updateSocialProgressView() {
+      document.querySelector("#social-charisma").textContent = gameState.stats.charisma;
+      document.querySelector("#social-quests-completed").textContent = gameState.completedSocialQuestCount;
     }
 
     function completeDayIfReady() {
@@ -833,6 +1338,9 @@
         }
         gameState.completedQuests.push(questId);
         gameState.completedQuestCount += 1;
+        if (quest.dataset.socialQuest === "true") {
+          gameState.completedSocialQuestCount += 1;
+        }
         quest.classList.add("completed");
         completeButton.disabled = true;
         completeButton.textContent = translations[language].completed;
@@ -840,6 +1348,18 @@
         saveGameState();
         updateGameStateView();
       });
+    });
+
+    document.querySelectorAll("[data-series-id]").forEach((series) => {
+      series.querySelectorAll("[data-series-stage]").forEach((stage) => {
+        stage.querySelector(".complete-button").addEventListener("click", () => {
+          completeSeriesStage(series, stage);
+        });
+      });
+    });
+
+    document.querySelectorAll("[data-long-term-id]").forEach((quest) => {
+      quest.querySelector(".long-term-add").addEventListener("click", () => addLongTermProgress(quest));
     });
 
     completeDayIfReady();
