@@ -213,6 +213,66 @@
       box-shadow: 0 0 10px rgba(185, 239, 113, .6);
     }
 
+    .status-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .status-item {
+      padding: 13px 14px;
+      border: 1px solid var(--line);
+      background: rgba(17, 24, 23, .78);
+    }
+
+    .status-name {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+
+    .status-value {
+      color: var(--text);
+      font-size: 17px;
+      font-weight: 700;
+    }
+
+    .day-quest {
+      padding: 17px 16px;
+      border: 1px solid #526843;
+      border-left: 3px solid var(--accent);
+      background: rgba(48, 74, 35, .24);
+    }
+
+    .day-quest-title {
+      margin: 0 0 8px;
+      color: var(--accent);
+      font-size: 18px;
+    }
+
+    .day-quest-task {
+      margin: 0 0 6px;
+      color: var(--text);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .day-quest-reward {
+      margin: 0 0 15px;
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .08em;
+    }
+
+    .day-quest .complete-button { width: 100%; }
+    .day-quest.completed { opacity: .58; }
+    .day-quest.completed .day-quest-title { text-decoration: line-through; }
+
     .section {
       margin-top: 28px;
     }
@@ -458,6 +518,26 @@
       </div>
     </section>
 
+    <section class="section" aria-labelledby="status-title">
+      <p class="section-label" id="status-title">Стан персонажа</p>
+      <div class="status-grid">
+        <div class="status-item"><span class="status-name">Гроші</span><strong class="status-value" id="money-value">0 грн</strong></div>
+        <div class="status-item"><span class="status-name">Здоров’я</span><strong class="status-value" id="health-value">100 / 100</strong></div>
+        <div class="status-item"><span class="status-name">Енергія</span><strong class="status-value" id="energy-value">100 / 100</strong></div>
+        <div class="status-item"><span class="status-name">Настрій</span><strong class="status-value" id="mood-value">100 / 100</strong></div>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="day-quest-title">
+      <p class="section-label" id="day-quest-title">Квест дня</p>
+      <div class="day-quest" data-quest-id="day-1-morning-start" data-xp="10">
+        <h2 class="day-quest-title">Ранковий старт</h2>
+        <p class="day-quest-task">Завдання: випити склянку води після пробудження.</p>
+        <p class="day-quest-reward">НАГОРОДА: +10 XP</p>
+        <button class="complete-button" type="button">ВИКОНАНО</button>
+      </div>
+    </section>
+
     <section class="section" aria-labelledby="stats-title">
       <p class="section-label" id="stats-title">Характеристики</p>
       <div class="stats">
@@ -496,15 +576,15 @@
       <section class="section" aria-labelledby="quests-title">
         <p class="section-label" id="quests-title">Щоденні квести</p>
         <div class="quest-list">
-          <div class="quest" data-xp="10">
+          <div class="quest" data-quest-id="daily-water" data-xp="10">
             <div class="quest-copy"><p class="quest-name">Випити склянку води</p><p class="quest-reward">+10 XP</p></div>
             <button class="complete-button" type="button">Виконано</button>
           </div>
-          <div class="quest" data-xp="20">
+          <div class="quest" data-quest-id="daily-activity" data-xp="20">
             <div class="quest-copy"><p class="quest-name">10 хвилин фізичної активності</p><p class="quest-reward">+20 XP</p></div>
             <button class="complete-button" type="button">Виконано</button>
           </div>
-          <div class="quest" data-xp="30">
+          <div class="quest" data-quest-id="daily-important-task" data-xp="30">
             <div class="quest-copy"><p class="quest-name">Виконати одну важливу справу</p><p class="quest-reward">+30 XP</p></div>
             <button class="complete-button" type="button">Виконано</button>
           </div>
@@ -515,9 +595,26 @@
     <button id="awakening-button" class="awakening-button" type="button">ПОЧАТИ ПРОБУДЖЕННЯ</button>
   </main>
   <script>
-    let experience = 0;
-
     const characterStorageKey = "life-game-character";
+    const gameStorageKey = "life-game-state";
+    const translations = {
+      uk: {
+        completed: "ЗАРАХОВАНО"
+      }
+    };
+    const language = "uk";
+    const defaultGameState = {
+      money: 0,
+      health: 100,
+      energy: 100,
+      mood: 100,
+      day: 1,
+      experience: 0,
+      completedQuests: []
+    };
+
+    let gameState = loadGameState();
+
     const characterScreen = document.querySelector("#character-screen");
     const characterForm = document.querySelector("#character-form");
     const heroName = document.querySelector("#hero-name");
@@ -526,10 +623,26 @@
     const experienceValue = document.querySelector("#xp-value");
     const experienceProgress = document.querySelector("#xp-progress");
 
+    function loadGameState() {
+      const savedState = localStorage.getItem(gameStorageKey);
+      if (!savedState) return { ...defaultGameState, completedQuests: [] };
+
+      try {
+        return { ...defaultGameState, ...JSON.parse(savedState) };
+      } catch {
+        return { ...defaultGameState, completedQuests: [] };
+      }
+    }
+
+    function saveGameState() {
+      localStorage.setItem(gameStorageKey, JSON.stringify(gameState));
+    }
+
     function showGame(character) {
       heroName.textContent = character.name;
       characterScreen.hidden = true;
       document.querySelector("main").hidden = false;
+      updateGameStateView();
     }
 
     const savedCharacter = localStorage.getItem(characterStorageKey);
@@ -553,9 +666,18 @@
     });
 
     function updateExperience() {
-      experienceValue.textContent = `${experience} / 100`;
-      experienceProgress.setAttribute("aria-valuenow", experience);
-      experienceProgress.querySelector(".xp-fill").style.width = `${experience}%`;
+      experienceValue.textContent = `${gameState.experience} / 100`;
+      experienceProgress.setAttribute("aria-valuenow", gameState.experience);
+      experienceProgress.querySelector(".xp-fill").style.width = `${gameState.experience}%`;
+    }
+
+    function updateGameStateView() {
+      document.querySelector("#money-value").textContent = `${gameState.money} грн`;
+      document.querySelector("#health-value").textContent = `${gameState.health} / 100`;
+      document.querySelector("#energy-value").textContent = `${gameState.energy} / 100`;
+      document.querySelector("#mood-value").textContent = `${gameState.mood} / 100`;
+      document.querySelector(".today-date").textContent = `ДЕНЬ ${String(gameState.day).padStart(2, "0")}`;
+      updateExperience();
     }
 
     awakeningButton.addEventListener("click", () => {
@@ -564,18 +686,53 @@
     });
 
     document.querySelectorAll(".quest").forEach((quest) => {
+      const questId = quest.dataset.questId;
       const completeButton = quest.querySelector(".complete-button");
 
-      completeButton.addEventListener("click", () => {
-        if (completeButton.disabled) return;
-
-        experience = Math.min(100, experience + Number(quest.dataset.xp));
+      if (gameState.completedQuests.includes(questId)) {
         quest.classList.add("completed");
         completeButton.disabled = true;
-        completeButton.textContent = "Зараховано";
+        completeButton.textContent = translations[language].completed;
+      }
+
+      completeButton.addEventListener("click", () => {
+        if (completeButton.disabled || gameState.completedQuests.includes(questId)) return;
+
+        gameState.experience = Math.min(100, gameState.experience + Number(quest.dataset.xp));
+        gameState.completedQuests.push(questId);
+        quest.classList.add("completed");
+        completeButton.disabled = true;
+        completeButton.textContent = translations[language].completed;
+        saveGameState();
         updateExperience();
       });
     });
+
+    document.querySelectorAll("[data-quest-id]").forEach((quest) => {
+      const questId = quest.dataset.questId;
+      const completeButton = quest.querySelector(".complete-button");
+      const isCompleted = gameState.completedQuests.includes(questId);
+
+      if (isCompleted) {
+        quest.classList.add("completed");
+        completeButton.disabled = true;
+        completeButton.textContent = translations[language].completed;
+      }
+
+      completeButton.addEventListener("click", () => {
+        if (completeButton.disabled || gameState.completedQuests.includes(questId)) return;
+
+        gameState.experience = Math.min(100, gameState.experience + Number(quest.dataset.xp));
+        gameState.completedQuests.push(questId);
+        quest.classList.add("completed");
+        completeButton.disabled = true;
+        completeButton.textContent = translations[language].completed;
+        saveGameState();
+        updateExperience();
+      });
+    });
+
+    updateGameStateView();
   </script>
 </body>
 </html>
