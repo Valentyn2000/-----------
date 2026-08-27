@@ -825,7 +825,6 @@
         <div class="stat"><span class="stat-name">Сила</span><strong class="stat-value" id="strength-value">1</strong></div>
         <div class="stat"><span class="stat-name">Витривалість</span><strong class="stat-value" id="endurance-value">1</strong></div>
         <div class="stat"><span class="stat-name">Швидкість</span><strong class="stat-value" id="speed-value">1</strong></div>
-        <div class="stat"><span class="stat-name">Дисципліна</span><strong class="stat-value" id="discipline-value">1</strong></div>
         <div class="stat"><span class="stat-name">Харизма</span><strong class="stat-value" id="charisma-value">0</strong></div>
       </div>
     </section>
@@ -1005,7 +1004,7 @@
         <span>ПРОБУДЖЕННЯ<br>Підготовка до визначення твоїх початкових можливостей.</span>
       </div>
       <section class="section" aria-labelledby="calibration-title">
-        <div class="calibration-card">
+        <div id="calibration-card" class="calibration-card">
           <h2 id="calibration-title">ПРОБУДЖЕННЯ — СИЛА</h2>
           <p class="calibration-task">Калібрування: <span id="calibration-exercise">Присідання</span>.</p>
           <p id="calibration-description" class="calibration-task">Виконай <strong id="calibration-target">5</strong> присідань.</p>
@@ -1027,6 +1026,12 @@
           <p id="physical-calibration-completion" class="calibration-completion" hidden>ФІЗИЧНЕ КАЛІБРУВАННЯ ЗАВЕРШЕНО</p>
           <p id="basic-calibration-completion" class="calibration-completion" hidden>БАЗОВЕ КАЛІБРУВАННЯ ЗАВЕРШЕНО</p>
         </div>
+      </section>
+      <section id="awakening-final-screen" class="section calibration-card" hidden aria-labelledby="awakening-final-title">
+        <h2 id="awakening-final-title">ПРОБУДЖЕННЯ ЗАВЕРШЕНО</h2>
+        <p class="calibration-task">Початкове калібрування завершено. Гра визначила стартову складність завдань для різних напрямків. Це лише початкова точка — характеристики змінюватимуться разом із твоїм реальним прогресом.</p>
+        <div id="awakening-characteristics" class="stats"></div>
+        <button id="start-journey-button" class="awakening-button" type="button">РОЗПОЧАТИ ШЛЯХ</button>
       </section>
     </section>
 
@@ -1138,11 +1143,11 @@
         }
       },
       characteristics: {
-        strength: 1,
-        endurance: 1,
-        speed: 1,
-        discipline: 1,
-        charisma: 0
+        strength: { current: null, starting: null, calibration: null, progress: 0 },
+        endurance: { current: null, starting: null, calibration: null, progress: 0 },
+        intelligence: { current: null, starting: null, calibration: null, progress: 0 },
+        charisma: { current: null, starting: null, calibration: null, progress: 0 },
+        practicality: { current: null, starting: null, calibration: null, progress: 0 }
       },
       skills: {},
       achievements: {},
@@ -1211,6 +1216,7 @@
       const baseState = createDefaultGameState(profile);
       const safeState = state && typeof state === "object" ? state : {};
       const savedProfile = safeState.profile && typeof safeState.profile === "object" ? safeState.profile : {};
+      const savedCharacteristics = safeState.characteristics && typeof safeState.characteristics === "object" ? safeState.characteristics : {};
       const savedAwakening = safeState.awakening && typeof safeState.awakening === "object" ? safeState.awakening : {};
       const awakeningStatus = ["not-started", "in-progress", "completed"].includes(savedAwakening.status)
         ? savedAwakening.status
@@ -1248,10 +1254,9 @@
         schemaVersion: gameStateSchemaVersion,
         profile: { ...baseState.profile, ...savedProfile },
         stats: { ...baseState.stats, ...(safeState.stats || {}) },
-        characteristics: {
-          ...baseState.characteristics,
-          ...(safeState.characteristics || safeState.stats || {})
-        },
+        characteristics: Object.values(savedCharacteristics).some((value) => value && typeof value === "object")
+          ? savedCharacteristics
+          : baseState.characteristics,
         completedQuests: Array.isArray(safeState.completedQuests) ? safeState.completedQuests : [],
         completedDays: Array.isArray(safeState.completedDays) ? safeState.completedDays : [],
         unlockNoticesShown: Array.isArray(safeState.unlockNoticesShown) ? safeState.unlockNoticesShown : [],
@@ -1293,7 +1298,9 @@
       normalizedState.level = Number.isInteger(safeState.level)
         ? safeState.level
         : getLevelInfo(Number(safeState.experience) || 0).level;
-      normalizedState.stats = { ...normalizedState.stats, ...normalizedState.characteristics };
+      if (!Object.values(normalizedState.characteristics).some((value) => value && typeof value === "object")) {
+        normalizedState.stats = { ...normalizedState.stats, ...normalizedState.characteristics };
+      }
 
       return normalizedState;
     }
@@ -1333,7 +1340,7 @@
     function saveGameState() {
       const stateToSave = validateGameState({
         ...gameState,
-        characteristics: gameState.stats,
+        characteristics: gameState.characteristics,
         longTermQuestProgress
       });
       gameState = stateToSave;
@@ -1465,6 +1472,61 @@
       awakeningButton.hidden = gameState.awakening.status !== "not-started";
       awakeningContent.hidden = gameState.awakening.status !== "in-progress";
       updateStrengthCalibrationView();
+      updateAwakeningFinalScreen();
+    }
+
+    function getCalibrationLevel(calibration) {
+      return Number.isInteger(calibration?.determinedLevel) ? calibration.determinedLevel : null;
+    }
+
+    function getMedianCalibrationLevel(levels) {
+      const sortedLevels = levels.filter(Number.isInteger).sort((first, second) => first - second);
+      if (!sortedLevels.length) return null;
+      const middle = Math.floor(sortedLevels.length / 2);
+      return sortedLevels.length % 2 === 0
+        ? Math.round((sortedLevels[middle - 1] + sortedLevels[middle]) / 2)
+        : sortedLevels[middle];
+    }
+
+    function calculateAwakeningCharacteristics() {
+      const calibration = gameState.awakening.calibration;
+      return {
+        strength: getMedianCalibrationLevel([getCalibrationLevel(calibration.strength), getCalibrationLevel(calibration.pushups)]),
+        endurance: getCalibrationLevel(calibration.endurance.plank),
+        intelligence: getMedianCalibrationLevel(Object.keys(awakeningStageDefinitions)
+          .filter((stageId) => stageId.startsWith("intelligence"))
+          .map((stageId) => getCalibrationLevel(calibration.stages[stageId]))),
+        charisma: getMedianCalibrationLevel(["charismaSelf", "charismaSocial"]
+          .map((stageId) => getCalibrationLevel(calibration.stages[stageId]))),
+        practicality: getMedianCalibrationLevel(Object.keys(awakeningStageDefinitions)
+          .filter((stageId) => stageId.startsWith("practical"))
+          .map((stageId) => getCalibrationLevel(calibration.stages[stageId])))
+      };
+    }
+
+    function finalizeAwakeningCalibration() {
+      if (!gameState.awakening.calibration.basicCompleted) return;
+      const calculated = calculateAwakeningCharacteristics();
+      if (Object.values(calculated).some((value) => !Number.isInteger(value))) return;
+      gameState.characteristics = Object.fromEntries(Object.entries(calculated).map(([name, value]) => [name, {
+        current: value,
+        starting: value,
+        calibration: value,
+        progress: 0
+      }]));
+      gameState.awakening.calibration.characteristicsCalculated = true;
+      saveGameState();
+    }
+
+    function updateAwakeningFinalScreen() {
+      const isReady = gameState.awakening.calibration.basicCompleted;
+      if (isReady && !gameState.awakening.calibration.characteristicsCalculated) finalizeAwakeningCalibration();
+      document.querySelector("#calibration-card").hidden = isReady;
+      document.querySelector("#awakening-final-screen").hidden = !isReady;
+      if (!isReady) return;
+      const characteristics = gameState.characteristics;
+      const labels = { strength: "Сила", endurance: "Витривалість", intelligence: "Інтелект", charisma: "Харизма", practicality: "Практичність" };
+      document.querySelector("#awakening-characteristics").innerHTML = Object.entries(labels).map(([name, label]) => `<div class="stat"><span class="stat-name">${label}</span><strong class="stat-value">${characteristics[name]?.starting ?? "—"}</strong></div>`).join("");
     }
 
     function updateStrengthCalibrationView() {
@@ -1513,6 +1575,7 @@
       };
       saveGameState();
       updateStrengthCalibrationView();
+      updateAwakeningFinalScreen();
     }
 
     function submitStrengthCalibrationRating(rating) {
@@ -1546,6 +1609,7 @@
           if (exerciseId === "pushups") { calibrationState.currentExercise = "plank"; calibrationState.currentStage = "plank"; }
           if (exerciseId === "plank") { calibrationState.physicalCompleted = true; calibrationState.currentStage = "intelligenceLogic"; }
           advanceBasicCalibration(calibrationState, exerciseId);
+          finalizeAwakeningCalibration();
         }
       }
 
@@ -1646,7 +1710,6 @@
       document.querySelector("#strength-value").textContent = gameState.stats.strength;
       document.querySelector("#endurance-value").textContent = gameState.stats.endurance;
       document.querySelector("#speed-value").textContent = gameState.stats.speed;
-      document.querySelector("#discipline-value").textContent = gameState.stats.discipline;
       document.querySelector("#charisma-value").textContent = gameState.stats.charisma;
       updateLevel();
       updateProgressView();
@@ -1881,6 +1944,14 @@
       saveGameState();
       awakeningContent.hidden = false;
       awakeningButton.hidden = true;
+      updateAwakeningAccess();
+    });
+
+    document.querySelector("#start-journey-button").addEventListener("click", () => {
+      if (!gameState.awakening.calibration.basicCompleted) return;
+      gameState.awakening.status = "completed";
+      gameState.awakening.completedAt = new Date().toISOString();
+      saveGameState();
       updateAwakeningAccess();
     });
 
