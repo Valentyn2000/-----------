@@ -389,6 +389,21 @@
       font-weight: 700;
     }
 
+    .character-progress-list { display: grid; gap: 8px; }
+
+    .character-progress-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 13px 14px;
+      border: 1px solid var(--line);
+      background: rgba(17, 24, 23, .78);
+    }
+
+    .character-progress-name { color: #bbc7be; font-size: 12px; }
+    .character-progress-value { color: var(--accent); font-size: 15px; font-weight: 700; text-align: right; }
+
     .day-quest {
       padding: 17px 16px;
       border: 1px solid #526843;
@@ -671,6 +686,16 @@
       <div id="quest-unlock-message" class="system-message level-up-message" hidden>
         ВІДКРИТО НОВІ КВЕСТИ
         <span>Тобі стали доступні нові випробування.</span>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="character-progress-title">
+      <p class="section-label" id="character-progress-title">Прогрес персонажа</p>
+      <div class="character-progress-list">
+        <div class="character-progress-item"><span class="character-progress-name">Завершені квести</span><strong class="character-progress-value" id="character-progress-quests">0</strong></div>
+        <div class="character-progress-item"><span class="character-progress-name">Streak</span><strong class="character-progress-value" id="character-progress-streak">0 днів</strong></div>
+        <div class="character-progress-item"><span class="character-progress-name">Завершені серії</span><strong class="character-progress-value" id="character-progress-series">0</strong></div>
+        <div class="character-progress-item"><span class="character-progress-name">Довгострокові квести</span><strong class="character-progress-value" id="character-progress-long-term">Немає прогресу</strong></div>
       </div>
     </section>
 
@@ -1233,6 +1258,26 @@
       document.querySelector("#progress-quests").textContent = gameState.completedQuestCount;
     }
 
+    function updateCharacterProgressView() {
+      const completedSeriesCount = [...document.querySelectorAll("[data-series-id]")].filter((series) => {
+        const seriesState = gameState.seriesProgress[series.dataset.seriesId];
+        const stageCount = series.querySelectorAll("[data-series-stage]").length;
+        return stageCount > 0 && seriesState?.completedStages?.length === stageCount;
+      }).length;
+      const longTermProgress = [...document.querySelectorAll("[data-long-term-id]")].map((quest) => {
+        const definition = longTermQuestDefinitions?.[quest.dataset.longTermId];
+        const state = longTermQuestProgress[quest.dataset.longTermId];
+        if (!definition || !state) return null;
+        const percent = Math.floor((Math.min(definition.target, Math.max(0, state.value)) / definition.target) * 100);
+        return `${quest.querySelector("h2")?.textContent || quest.dataset.longTermId}: ${percent}%`;
+      }).filter(Boolean).join(" · ");
+
+      document.querySelector("#character-progress-quests").textContent = gameState.completedQuestCount;
+      document.querySelector("#character-progress-streak").textContent = `${gameState.streak} днів`;
+      document.querySelector("#character-progress-series").textContent = completedSeriesCount;
+      document.querySelector("#character-progress-long-term").textContent = longTermProgress || "Немає прогресу";
+    }
+
     function hasNewlyAvailableContent(previousLevel, currentLevel) {
       return [...document.querySelectorAll("[data-pool-quest], [data-series-id], [data-long-term-id]")].some((item) => {
         const minLevel = Number(item.dataset.minLevel || 1);
@@ -1283,6 +1328,7 @@
       document.querySelector("#charisma-value").textContent = gameState.stats.charisma;
       updateLevel();
       updateProgressView();
+      updateCharacterProgressView();
       updateSocialProgressView();
       updateExperience();
       updateQuestAvailability();
