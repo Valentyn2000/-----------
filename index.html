@@ -953,6 +953,7 @@
     const characterStorageKey = "life-game-character";
     const gameStorageKey = "life-game-state";
     const longTermStorageKey = "longTermQuestProgress";
+    const gameStateSchemaVersion = 2;
     const translations = {
       uk: {
         available: "ВИКОНАНО",
@@ -961,7 +962,14 @@
       }
     };
     const language = "uk";
-    const defaultGameState = {
+    function createDefaultGameState(profile = {}) {
+      return {
+      schemaVersion: gameStateSchemaVersion,
+      profile: {
+        name: typeof profile.name === "string" ? profile.name : "",
+        age: profile.age ?? "",
+        gender: typeof profile.gender === "string" ? profile.gender : ""
+      },
       money: 0,
       health: 100,
       energy: 100,
@@ -982,8 +990,26 @@
       streak: 0,
       completedDays: [],
       level: 1,
-      unlockNoticesShown: []
-    };
+      unlockNoticesShown: [],
+      longTermQuestProgress: {},
+      awakening: {},
+      characteristics: {
+        strength: 1,
+        endurance: 1,
+        speed: 1,
+        discipline: 1,
+        charisma: 0
+      },
+      skills: {},
+      achievements: {},
+      questPreferences: {},
+      notificationPreferences: {},
+      adaptiveDifficulty: {},
+      progressStatistics: {}
+      };
+    }
+
+    const defaultGameState = createDefaultGameState();
 
     const levelThresholds = [
       { level: 1, minimumXp: 0, nextLevelXp: 100 },
@@ -1024,7 +1050,9 @@
     }
 
     let gameState = loadGameState();
-    let longTermQuestProgress = loadLongTermQuestProgress();
+    let longTermQuestProgress = gameState.longTermQuestProgress;
+    if (!Object.keys(longTermQuestProgress).length) longTermQuestProgress = loadLongTermQuestProgress();
+    gameState.longTermQuestProgress = longTermQuestProgress;
     let longTermQuestDefinitions;
 
     const characterScreen = document.querySelector("#character-screen");
@@ -1035,47 +1063,91 @@
     const experienceValue = document.querySelector("#xp-value");
     const experienceProgress = document.querySelector("#xp-progress");
 
+    function validateGameState(state, profile = {}) {
+      const baseState = createDefaultGameState(profile);
+      const safeState = state && typeof state === "object" ? state : {};
+      const savedProfile = safeState.profile && typeof safeState.profile === "object" ? safeState.profile : {};
+      const normalizedState = {
+        ...baseState,
+        ...safeState,
+        schemaVersion: gameStateSchemaVersion,
+        profile: { ...baseState.profile, ...savedProfile },
+        stats: { ...baseState.stats, ...(safeState.stats || {}) },
+        characteristics: {
+          ...baseState.characteristics,
+          ...(safeState.characteristics || safeState.stats || {})
+        },
+        completedQuests: Array.isArray(safeState.completedQuests) ? safeState.completedQuests : [],
+        completedDays: Array.isArray(safeState.completedDays) ? safeState.completedDays : [],
+        unlockNoticesShown: Array.isArray(safeState.unlockNoticesShown) ? safeState.unlockNoticesShown : [],
+        longTermQuestProgress: safeState.longTermQuestProgress && typeof safeState.longTermQuestProgress === "object"
+          ? safeState.longTermQuestProgress
+          : {}
+      };
+
+      normalizedState.completedQuestCount = Number.isFinite(safeState.completedQuestCount)
+        ? safeState.completedQuestCount
+        : normalizedState.completedQuests.length;
+      normalizedState.completedSocialQuestCount = Number.isFinite(safeState.completedSocialQuestCount)
+        ? safeState.completedSocialQuestCount
+        : normalizedState.completedQuests.filter((questId) => questId.startsWith("social-")).length;
+      normalizedState.seriesProgress = safeState.seriesProgress && typeof safeState.seriesProgress === "object"
+        ? Object.fromEntries(Object.entries(safeState.seriesProgress).map(([seriesId, seriesState]) => [
+          seriesId,
+          {
+            completedStages: Array.isArray(seriesState?.completedStages) ? seriesState.completedStages : [],
+            finalRewardClaimed: seriesState?.finalRewardClaimed === true
+          }
+        ]))
+        : {};
+      normalizedState.level = Number.isInteger(safeState.level)
+        ? safeState.level
+        : getLevelInfo(Number(safeState.experience) || 0).level;
+      normalizedState.stats = { ...normalizedState.stats, ...normalizedState.characteristics };
+
+      return normalizedState;
+    }
+
+    function migrateGameState(savedState, profile = {}) {
+      return validateGameState({
+        ...savedState,
+        profile: { ...profile, ...(savedState.profile || {}) },
+        longTermQuestProgress: savedState.longTermQuestProgress || loadLongTermQuestProgress()
+      }, profile);
+    }
+
     function loadGameState() {
       const savedState = localStorage.getItem(gameStorageKey);
-      if (!savedState) return { ...defaultGameState, completedQuests: [] };
+      const savedCharacter = localStorage.getItem(characterStorageKey);
+      let profile = {};
+
+      if (savedCharacter) {
+        try {
+          profile = JSON.parse(savedCharacter);
+        } catch {
+          profile = {};
+        }
+      }
+
+      if (!savedState) return createDefaultGameState(profile);
 
       try {
-        const savedGameState = JSON.parse(savedState);
-        return {
-          ...defaultGameState,
-          ...savedGameState,
-          stats: { ...defaultGameState.stats, ...(savedGameState.stats || {}) },
-          completedQuests: Array.isArray(savedGameState.completedQuests) ? savedGameState.completedQuests : [],
-          completedDays: Array.isArray(savedGameState.completedDays) ? savedGameState.completedDays : [],
-          completedQuestCount: Number.isFinite(savedGameState.completedQuestCount)
-            ? savedGameState.completedQuestCount
-            : (Array.isArray(savedGameState.completedQuests) ? savedGameState.completedQuests.length : 0),
-          completedSocialQuestCount: Number.isFinite(savedGameState.completedSocialQuestCount)
-            ? savedGameState.completedSocialQuestCount
-            : (Array.isArray(savedGameState.completedQuests)
-              ? savedGameState.completedQuests.filter((questId) => questId.startsWith("social-")).length
-              : 0),
-          seriesProgress: savedGameState.seriesProgress && typeof savedGameState.seriesProgress === "object"
-            ? Object.fromEntries(Object.entries(savedGameState.seriesProgress).map(([seriesId, seriesState]) => [
-              seriesId,
-              {
-                completedStages: Array.isArray(seriesState?.completedStages) ? seriesState.completedStages : [],
-                finalRewardClaimed: seriesState?.finalRewardClaimed === true
-              }
-            ]))
-            : {},
-          level: Number.isInteger(savedGameState.level)
-            ? savedGameState.level
-            : getLevelInfo(Number(savedGameState.experience) || 0).level,
-          unlockNoticesShown: Array.isArray(savedGameState.unlockNoticesShown) ? savedGameState.unlockNoticesShown : []
-        };
+        const migratedState = migrateGameState(JSON.parse(savedState), profile);
+        localStorage.setItem(gameStorageKey, JSON.stringify(migratedState));
+        return migratedState;
       } catch {
-        return { ...defaultGameState, completedQuests: [] };
+        return createDefaultGameState(profile);
       }
     }
 
     function saveGameState() {
-      localStorage.setItem(gameStorageKey, JSON.stringify(gameState));
+      const stateToSave = validateGameState({
+        ...gameState,
+        characteristics: gameState.stats,
+        longTermQuestProgress
+      });
+      gameState = stateToSave;
+      localStorage.setItem(gameStorageKey, JSON.stringify(stateToSave));
     }
 
     function loadLongTermQuestProgress() {
