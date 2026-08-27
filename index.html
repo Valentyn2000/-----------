@@ -535,6 +535,8 @@
 
     .action-button::after { content: "↗"; color: var(--accent); font-size: 18px; }
     .action-button:hover { border-color: var(--accent); background: var(--surface-light); }
+    .action-button:disabled { color: var(--muted); background: var(--surface); border-color: var(--line); cursor: default; opacity: .6; }
+    .action-button:disabled::after { color: var(--muted); }
 
     .awakening-button {
       width: 100%;
@@ -988,26 +990,8 @@
     <section id="awakening-content" hidden aria-live="polite">
       <div class="system-message">
         [СИСТЕМА]
-        <span>ПРОБУДЖЕННЯ РОЗПОЧАТО<br>Твій перший день починається.</span>
+        <span>ПРОБУДЖЕННЯ<br>Підготовка до визначення твоїх початкових можливостей.</span>
       </div>
-
-      <section class="section" aria-labelledby="quests-title">
-        <p class="section-label" id="quests-title">Щоденні квести</p>
-        <div class="quest-list">
-          <div class="quest" data-quest-id="daily-water" data-xp="10">
-            <div class="quest-copy"><p class="quest-name">Випити склянку води</p><p class="quest-reward">+10 XP</p></div>
-            <button class="complete-button" type="button">Виконано</button>
-          </div>
-          <div class="quest" data-quest-id="daily-activity" data-xp="20">
-            <div class="quest-copy"><p class="quest-name">10 хвилин фізичної активності</p><p class="quest-reward">+20 XP</p></div>
-            <button class="complete-button" type="button">Виконано</button>
-          </div>
-          <div class="quest" data-quest-id="daily-important-task" data-xp="30">
-            <div class="quest-copy"><p class="quest-name">Виконати одну важливу справу</p><p class="quest-reward">+30 XP</p></div>
-            <button class="complete-button" type="button">Виконано</button>
-          </div>
-        </div>
-      </section>
     </section>
 
     <button id="awakening-button" class="awakening-button" type="button">ПОЧАТИ ПРОБУДЖЕННЯ</button>
@@ -1055,7 +1039,11 @@
       level: 1,
       unlockNoticesShown: [],
       longTermQuestProgress: {},
-      awakening: {},
+      awakening: {
+        status: "not-started",
+        startedAt: null,
+        completedAt: null
+      },
       characteristics: {
         strength: 1,
         endurance: 1,
@@ -1130,6 +1118,10 @@
       const baseState = createDefaultGameState(profile);
       const safeState = state && typeof state === "object" ? state : {};
       const savedProfile = safeState.profile && typeof safeState.profile === "object" ? safeState.profile : {};
+      const savedAwakening = safeState.awakening && typeof safeState.awakening === "object" ? safeState.awakening : {};
+      const awakeningStatus = ["not-started", "in-progress", "completed"].includes(savedAwakening.status)
+        ? savedAwakening.status
+        : "completed";
       const normalizedState = {
         ...baseState,
         ...safeState,
@@ -1143,6 +1135,11 @@
         completedQuests: Array.isArray(safeState.completedQuests) ? safeState.completedQuests : [],
         completedDays: Array.isArray(safeState.completedDays) ? safeState.completedDays : [],
         unlockNoticesShown: Array.isArray(safeState.unlockNoticesShown) ? safeState.unlockNoticesShown : [],
+        awakening: {
+          status: awakeningStatus,
+          startedAt: savedAwakening.startedAt || null,
+          completedAt: savedAwakening.completedAt || null
+        },
         longTermQuestProgress: safeState.longTermQuestProgress && typeof safeState.longTermQuestProgress === "object"
           ? safeState.longTermQuestProgress
           : {}
@@ -1263,6 +1260,9 @@
       };
 
       localStorage.setItem(characterStorageKey, JSON.stringify(character));
+      gameState.profile = character;
+      gameState.awakening = { status: "not-started", startedAt: null, completedAt: null };
+      saveGameState();
       showGame(character);
     });
 
@@ -1324,6 +1324,16 @@
       document.querySelector("#character-progress-streak").textContent = `${gameState.streak} днів`;
       document.querySelector("#character-progress-series").textContent = completedSeriesCount;
       document.querySelector("#character-progress-long-term").textContent = longTermProgress || "Немає прогресу";
+    }
+
+    function updateAwakeningAccess() {
+      const awakeningStarted = gameState.awakening.status !== "completed";
+      document.querySelectorAll(".actions .action-button").forEach((button) => {
+        button.disabled = awakeningStarted;
+        button.setAttribute("aria-disabled", String(awakeningStarted));
+      });
+      awakeningButton.hidden = gameState.awakening.status !== "not-started";
+      awakeningContent.hidden = gameState.awakening.status !== "in-progress";
     }
 
     function updateAchievementsView() {
@@ -1401,6 +1411,7 @@
       updateProgressView();
       updateCharacterProgressView();
       updateAchievementsView();
+      updateAwakeningAccess();
       updateSocialProgressView();
       updateExperience();
       updateQuestAvailability();
@@ -1620,8 +1631,16 @@
     }
 
     awakeningButton.addEventListener("click", () => {
+      if (gameState.awakening.status === "completed") return;
+      gameState.awakening = {
+        ...gameState.awakening,
+        status: "in-progress",
+        startedAt: gameState.awakening.startedAt || new Date().toISOString()
+      };
+      saveGameState();
       awakeningContent.hidden = false;
       awakeningButton.hidden = true;
+      updateAwakeningAccess();
     });
 
     document.querySelectorAll("[data-quest-id]").forEach((quest) => {
