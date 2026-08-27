@@ -551,6 +551,18 @@
 
     .awakening-button:hover { background: #d0f99a; }
 
+    .calibration-card { padding: 17px 16px; border: 1px solid #526843; border-left: 3px solid var(--accent); background: rgba(48, 74, 35, .24); }
+    .calibration-card h2 { margin: 0 0 8px; color: var(--accent); font-size: 19px; }
+    .calibration-task { margin: 0 0 14px; color: var(--text); font-size: 13px; line-height: 1.5; }
+    .calibration-level { margin: 0 0 14px; color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .08em; }
+    .calibration-card .complete-button { width: 100%; }
+    .calibration-rating { margin-top: 16px; }
+    .calibration-rating-title { margin: 0 0 9px; color: var(--muted); font-size: 11px; line-height: 1.5; }
+    .calibration-rating-options { display: grid; gap: 6px; }
+    .calibration-rating-option { min-height: 36px; border: 1px solid var(--line); color: var(--text); background: var(--surface); font: inherit; font-size: 11px; cursor: pointer; }
+    .calibration-rating-option:hover { border-color: var(--accent); background: var(--surface-light); }
+    .calibration-completion { margin: 14px 0 0; color: var(--accent); font-size: 11px; font-weight: 700; letter-spacing: .08em; }
+
     button:focus-visible { outline: 2px solid var(--orange); outline-offset: 3px; }
 
     .character-screen {
@@ -992,6 +1004,26 @@
         [СИСТЕМА]
         <span>ПРОБУДЖЕННЯ<br>Підготовка до визначення твоїх початкових можливостей.</span>
       </div>
+      <section class="section" aria-labelledby="calibration-title">
+        <div class="calibration-card">
+          <h2 id="calibration-title">ПРОБУДЖЕННЯ — СИЛА</h2>
+          <p class="calibration-task">ПРИСІДАННЯ: виконай <strong id="calibration-target">5</strong> присідань.</p>
+          <p class="calibration-level">ТЕСТОВИЙ РІВЕНЬ: <span id="calibration-level">1</span> / 5</p>
+          <button id="calibration-complete" class="complete-button" type="button">ЗАВЕРШИТИ ВИПРОБУВАННЯ</button>
+          <div id="calibration-rating" class="calibration-rating" hidden>
+            <p class="calibration-rating-title">Як би ти оцінив складність цього випробування?</p>
+            <div class="calibration-rating-options">
+              <button class="calibration-rating-option" type="button" data-rating="very-easy">Дуже легко</button>
+              <button class="calibration-rating-option" type="button" data-rating="easy">Легко</button>
+              <button class="calibration-rating-option" type="button" data-rating="normal">Нормально</button>
+              <button class="calibration-rating-option" type="button" data-rating="hard">Складно</button>
+              <button class="calibration-rating-option" type="button" data-rating="very-hard">Дуже складно</button>
+              <button class="calibration-rating-option" type="button" data-rating="impossible">Неможливо</button>
+            </div>
+          </div>
+          <p id="calibration-completion" class="calibration-completion" hidden>КАЛІБРУВАННЯ: ПРИСІДАННЯ — ЗАВЕРШЕНО</p>
+        </div>
+      </section>
     </section>
 
     <button id="awakening-button" class="awakening-button" type="button">ПОЧАТИ ПРОБУДЖЕННЯ</button>
@@ -1009,6 +1041,7 @@
       }
     };
     const language = "uk";
+    const strengthCalibrationLevels = [5, 10, 15, 20, 30];
     function createDefaultGameState(profile = {}) {
       return {
       schemaVersion: gameStateSchemaVersion,
@@ -1042,7 +1075,17 @@
       awakening: {
         status: "not-started",
         startedAt: null,
-        completedAt: null
+        completedAt: null,
+        calibration: {
+          strength: {
+            currentLevel: 1,
+            attempts: [],
+            pendingAttempt: null,
+            normalConfirmations: 0,
+            completed: false,
+            determinedLevel: null
+          }
+        }
       },
       characteristics: {
         strength: 1,
@@ -1122,6 +1165,21 @@
       const awakeningStatus = ["not-started", "in-progress", "completed"].includes(savedAwakening.status)
         ? savedAwakening.status
         : "completed";
+      const savedStrengthCalibration = savedAwakening.calibration?.strength;
+      const strengthCalibration = {
+        currentLevel: Number.isInteger(savedStrengthCalibration?.currentLevel)
+          ? Math.min(5, Math.max(1, savedStrengthCalibration.currentLevel))
+          : 1,
+        attempts: Array.isArray(savedStrengthCalibration?.attempts) ? savedStrengthCalibration.attempts : [],
+        pendingAttempt: savedStrengthCalibration?.pendingAttempt || null,
+        normalConfirmations: Number.isInteger(savedStrengthCalibration?.normalConfirmations)
+          ? Math.max(0, savedStrengthCalibration.normalConfirmations)
+          : 0,
+        completed: savedStrengthCalibration?.completed === true,
+        determinedLevel: Number.isInteger(savedStrengthCalibration?.determinedLevel)
+          ? savedStrengthCalibration.determinedLevel
+          : null
+      };
       const normalizedState = {
         ...baseState,
         ...safeState,
@@ -1138,7 +1196,8 @@
         awakening: {
           status: awakeningStatus,
           startedAt: savedAwakening.startedAt || null,
-          completedAt: savedAwakening.completedAt || null
+          completedAt: savedAwakening.completedAt || null,
+          calibration: { strength: strengthCalibration }
         },
         longTermQuestProgress: safeState.longTermQuestProgress && typeof safeState.longTermQuestProgress === "object"
           ? safeState.longTermQuestProgress
@@ -1261,7 +1320,7 @@
 
       localStorage.setItem(characterStorageKey, JSON.stringify(character));
       gameState.profile = character;
-      gameState.awakening = { status: "not-started", startedAt: null, completedAt: null };
+      gameState.awakening = createDefaultGameState(character).awakening;
       saveGameState();
       showGame(character);
     });
@@ -1334,6 +1393,60 @@
       });
       awakeningButton.hidden = gameState.awakening.status !== "not-started";
       awakeningContent.hidden = gameState.awakening.status !== "in-progress";
+      updateStrengthCalibrationView();
+    }
+
+    function updateStrengthCalibrationView() {
+      const calibration = gameState.awakening.calibration.strength;
+      const level = Math.min(5, Math.max(1, calibration.currentLevel));
+      const isCompleted = calibration.completed === true;
+      document.querySelector("#calibration-level").textContent = level;
+      document.querySelector("#calibration-target").textContent = strengthCalibrationLevels[level - 1];
+      document.querySelector("#calibration-complete").hidden = isCompleted || calibration.pendingAttempt !== null;
+      document.querySelector("#calibration-rating").hidden = isCompleted || calibration.pendingAttempt === null;
+      document.querySelector("#calibration-completion").hidden = !isCompleted;
+    }
+
+    function startStrengthCalibrationAttempt() {
+      const calibration = gameState.awakening.calibration.strength;
+      if (calibration.completed || calibration.pendingAttempt) return;
+      const level = Math.min(5, Math.max(1, calibration.currentLevel));
+      calibration.pendingAttempt = {
+        type: "strength-squats",
+        difficultyLevel: level,
+        targetValue: strengthCalibrationLevels[level - 1]
+      };
+      saveGameState();
+      updateStrengthCalibrationView();
+    }
+
+    function submitStrengthCalibrationRating(rating) {
+      const calibration = gameState.awakening.calibration.strength;
+      const attempt = calibration.pendingAttempt;
+      if (!attempt || calibration.completed) return;
+
+      calibration.attempts.push({
+        ...attempt,
+        rating,
+        completed: rating !== "impossible",
+        recordedAt: new Date().toISOString()
+      });
+      calibration.pendingAttempt = null;
+
+      if (rating === "very-easy" || rating === "easy") {
+        calibration.currentLevel = Math.min(5, calibration.currentLevel + 1);
+      } else if (rating === "hard" || rating === "very-hard" || rating === "impossible") {
+        calibration.currentLevel = Math.max(1, calibration.currentLevel - 1);
+      } else if (rating === "normal") {
+        calibration.normalConfirmations += 1;
+        if (calibration.normalConfirmations >= 2) {
+          calibration.completed = true;
+          calibration.determinedLevel = attempt.difficultyLevel;
+        }
+      }
+
+      saveGameState();
+      updateStrengthCalibrationView();
     }
 
     function updateAchievementsView() {
@@ -1641,6 +1754,11 @@
       awakeningContent.hidden = false;
       awakeningButton.hidden = true;
       updateAwakeningAccess();
+    });
+
+    document.querySelector("#calibration-complete").addEventListener("click", startStrengthCalibrationAttempt);
+    document.querySelectorAll(".calibration-rating-option").forEach((option) => {
+      option.addEventListener("click", () => submitStrengthCalibrationRating(option.dataset.rating));
     });
 
     document.querySelectorAll("[data-quest-id]").forEach((quest) => {
