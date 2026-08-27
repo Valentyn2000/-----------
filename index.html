@@ -488,6 +488,10 @@
 
     .stat-name { color: #bbc7be; font-size: 13px; }
     .stat-value { color: var(--accent); font-size: 18px; font-weight: 700; }
+    .stat-copy { min-width: 0; }
+    .stat-progress { margin: 5px 0 0; color: var(--muted); font-size: 10px; }
+    .stat-track { height: 6px; margin-top: 8px; padding: 1px; border: 1px solid var(--line); background: #080b0b; }
+    .stat-fill { width: 0; height: 100%; background: var(--accent); }
 
     .streak {
       display: flex;
@@ -739,7 +743,7 @@
         <p class="day-quest-reward">НАГОРОДА: +10 XP</p>
         <button class="complete-button" type="button">ВИКОНАНО</button>
       </div>
-      <div class="day-quest" data-quest-id="day-1-movement" data-xp="15" data-stat="endurance" data-stat-amount="1">
+      <div class="day-quest" data-quest-id="day-1-movement" data-xp="15" data-stat="endurance" data-stat-amount="1" data-characteristic-impact="endurance">
         <h2 class="day-quest-title">Рух</h2>
         <p class="day-quest-task">Завдання: пройтися або зробити легку фізичну активність не менше 20 хвилин.</p>
         <p class="day-quest-reward">НАГОРОДА: +15 XP, +1 ВИТРИВАЛІСТЬ</p>
@@ -792,7 +796,7 @@
     <section class="section" aria-labelledby="daily-pool-title">
       <p class="section-label" id="daily-pool-title">Пул щоденних квестів</p>
       <div class="quest-list">
-        <article class="quest pool-quest" data-quest-id="pool-movement-10" data-pool-quest="true" data-difficulty="easy" data-min-level="1" data-xp="10">
+        <article class="quest pool-quest" data-quest-id="pool-movement-10" data-pool-quest="true" data-difficulty="easy" data-min-level="1" data-xp="10" data-characteristic-impact="endurance">
           <div class="quest-copy"><p class="quest-name">10 хвилин руху</p><p class="quest-description">Легка активність протягом десяти хвилин.</p><p class="quest-reward">🟢 ЛЕГКА · +10 XP</p><p class="quest-lock" hidden></p></div>
           <button class="complete-button" type="button">ВИКОНАНО</button>
         </article>
@@ -800,15 +804,15 @@
           <div class="quest-copy"><p class="quest-name">Наведи порядок</p><p class="quest-description">Прибери невелику зону навколо себе.</p><p class="quest-reward">🟢 ЛЕГКА · +10 XP</p><p class="quest-lock" hidden></p></div>
           <button class="complete-button" type="button">ВИКОНАНО</button>
         </article>
-        <article class="quest pool-quest" data-quest-id="pool-activity-20" data-pool-quest="true" data-difficulty="easy" data-min-level="2" data-xp="15">
+        <article class="quest pool-quest" data-quest-id="pool-activity-20" data-pool-quest="true" data-difficulty="easy" data-min-level="2" data-xp="15" data-characteristic-impact="endurance">
           <div class="quest-copy"><p class="quest-name">20 хвилин активності</p><p class="quest-description">Зроби легку фізичну активність протягом двадцяти хвилин.</p><p class="quest-reward">🟢 ЛЕГКА · +15 XP</p><p class="quest-lock" hidden></p></div>
           <button class="complete-button" type="button">ВИКОНАНО</button>
         </article>
-        <article class="quest pool-quest" data-quest-id="pool-new-conversation" data-pool-quest="true" data-difficulty="medium" data-min-level="3" data-xp="25">
+        <article class="quest pool-quest" data-quest-id="pool-new-conversation" data-pool-quest="true" data-difficulty="medium" data-min-level="3" data-xp="25" data-characteristic-impact="charisma">
           <div class="quest-copy"><p class="quest-name">Почни розмову з новою людиною</p><p class="quest-description">Почни коротку доброзичливу розмову.</p><p class="quest-reward">🟡 СЕРЕДНЯ · +25 XP</p><p class="quest-lock" hidden></p></div>
           <button class="complete-button" type="button">ВИКОНАНО</button>
         </article>
-        <article class="quest pool-quest" data-quest-id="pool-training-30" data-pool-quest="true" data-difficulty="hard" data-min-level="5" data-xp="40">
+        <article class="quest pool-quest" data-quest-id="pool-training-30" data-pool-quest="true" data-difficulty="hard" data-min-level="5" data-xp="40" data-characteristic-impact="strength">
           <div class="quest-copy"><p class="quest-name">30 хвилин тренування</p><p class="quest-description">Проведи повноцінне тренування тривалістю тридцять хвилин.</p><p class="quest-reward">🟠 СКЛАДНА · +40 XP</p><p class="quest-lock" hidden></p></div>
           <button class="complete-button" type="button">ВИКОНАНО</button>
         </article>
@@ -822,35 +826,36 @@
     <section class="section" aria-labelledby="stats-title">
       <p class="section-label" id="stats-title">Характеристики</p>
       <div class="stats">
-        <div class="stat"><span class="stat-name">Сила</span><strong class="stat-value" id="strength-value">1</strong></div>
-        <div class="stat"><span class="stat-name">Витривалість</span><strong class="stat-value" id="endurance-value">1</strong></div>
-        <div class="stat"><span class="stat-name">Швидкість</span><strong class="stat-value" id="speed-value">1</strong></div>
-        <div class="stat"><span class="stat-name">Харизма</span><strong class="stat-value" id="charisma-value">0</strong></div>
+        <div class="stat" data-characteristic="strength"><div class="stat-copy"><span class="stat-name">Сила</span><p class="stat-progress">Стартове калібрування не виконано</p><div class="stat-track"><div class="stat-fill"></div></div></div><strong class="stat-value">—</strong></div>
+        <div class="stat" data-characteristic="endurance"><div class="stat-copy"><span class="stat-name">Витривалість</span><p class="stat-progress">Стартове калібрування не виконано</p><div class="stat-track"><div class="stat-fill"></div></div></div><strong class="stat-value">—</strong></div>
+        <div class="stat" data-characteristic="intelligence"><div class="stat-copy"><span class="stat-name">Інтелект</span><p class="stat-progress">Стартове калібрування не виконано</p><div class="stat-track"><div class="stat-fill"></div></div></div><strong class="stat-value">—</strong></div>
+        <div class="stat" data-characteristic="charisma"><div class="stat-copy"><span class="stat-name">Харизма</span><p class="stat-progress">Стартове калібрування не виконано</p><div class="stat-track"><div class="stat-fill"></div></div></div><strong class="stat-value">—</strong></div>
+        <div class="stat" data-characteristic="practicality"><div class="stat-copy"><span class="stat-name">Практичність</span><p class="stat-progress">Стартове калібрування не виконано</p><div class="stat-track"><div class="stat-fill"></div></div></div><strong class="stat-value">—</strong></div>
       </div>
     </section>
 
     <section class="section" aria-labelledby="social-life-title">
       <p class="section-label" id="social-life-title">Соціальне життя</p>
       <div class="social-quest-list">
-        <article class="social-quest" data-quest-id="social-greet-new-person" data-social-quest="true" data-xp="10" data-social-target="new-person" data-social-goal="greeting" data-difficulty="easy" data-min-level="1">
+        <article class="social-quest" data-quest-id="social-greet-new-person" data-social-quest="true" data-xp="10" data-social-target="new-person" data-social-goal="greeting" data-difficulty="easy" data-min-level="1" data-characteristic-impact="charisma">
           <div class="social-quest-top"><p class="quest-name">Привітайся з новою людиною</p><span class="difficulty">ЛЕГКИЙ</span></div>
           <p class="social-quest-description">Сьогодні першим привітайся з людиною, з якою раніше не спілкувався.</p>
           <p class="quest-reward">+10 XP</p>
           <button class="complete-button" type="button">ВИКОНАНО</button>
         </article>
-        <article class="social-quest" data-quest-id="social-start-conversation" data-social-quest="true" data-xp="10" data-social-target="outside-circle" data-social-goal="conversation" data-difficulty="easy" data-min-level="1">
+        <article class="social-quest" data-quest-id="social-start-conversation" data-social-quest="true" data-xp="10" data-social-target="outside-circle" data-social-goal="conversation" data-difficulty="easy" data-min-level="1" data-characteristic-impact="charisma">
           <div class="social-quest-top"><p class="quest-name">Почни коротку розмову</p><span class="difficulty">ЛЕГКИЙ</span></div>
           <p class="social-quest-description">Почни невелику доброзичливу розмову з людиною поза своїм звичним колом спілкування.</p>
           <p class="quest-reward">+10 XP</p>
           <button class="complete-button" type="button">ВИКОНАНО</button>
         </article>
-        <article class="social-quest" data-quest-id="social-open-question" data-social-quest="true" data-xp="10" data-social-target="conversation-partner" data-social-goal="open-question" data-difficulty="easy" data-min-level="1">
+        <article class="social-quest" data-quest-id="social-open-question" data-social-quest="true" data-xp="10" data-social-target="conversation-partner" data-social-goal="open-question" data-difficulty="easy" data-min-level="1" data-characteristic-impact="charisma">
           <div class="social-quest-top"><p class="quest-name">Постав відкрите запитання</p><span class="difficulty">ЛЕГКИЙ</span></div>
           <p class="social-quest-description">Під час розмови постав запитання, на яке не можна відповісти лише «так» або «ні».</p>
           <p class="quest-reward">+10 XP</p>
           <button class="complete-button" type="button">ВИКОНАНО</button>
         </article>
-        <article class="social-quest" data-quest-id="social-meet-new-person" data-social-quest="true" data-xp="20" data-stat="charisma" data-stat-amount="1" data-social-target="new-person" data-social-goal="introduction" data-difficulty="medium" data-min-level="3">
+        <article class="social-quest" data-quest-id="social-meet-new-person" data-social-quest="true" data-xp="20" data-stat="charisma" data-stat-amount="1" data-social-target="new-person" data-social-goal="introduction" data-difficulty="medium" data-min-level="3" data-characteristic-impact="charisma">
           <div class="social-quest-top"><p class="quest-name">Познайомся з новою людиною</p><span class="difficulty">СЕРЕДНІЙ</span></div>
           <p class="social-quest-description">Познайомся з новою людиною та дізнайся її ім’я.</p>
           <p class="quest-reward">+20 XP, +1 ХАРИЗМА</p>
@@ -1050,6 +1055,8 @@
       }
     };
     const language = "uk";
+    const characteristicProgressThreshold = 10;
+    const characteristicProgressRewards = { easy: 2, medium: 3, hard: 4, veryHard: 5 };
     const awakeningCalibrationDefinitions = {
       squats: { characteristic: "strength", title: "Сила", name: "Присідання", type: "count", levels: [5, 10, 15, 20, 30] },
       pushups: { characteristic: "strength", title: "Сила", name: "Віджимання", type: "count", levels: [3, 5, 10, 15, 20] },
@@ -1149,6 +1156,8 @@
         charisma: { current: null, starting: null, calibration: null, progress: 0 },
         practicality: { current: null, starting: null, calibration: null, progress: 0 }
       },
+        characteristicDevelopmentHistory: [],
+        characteristicProgressQuestIds: [],
       skills: {},
       achievements: {},
       questPreferences: {},
@@ -1257,6 +1266,12 @@
         characteristics: Object.values(savedCharacteristics).some((value) => value && typeof value === "object")
           ? savedCharacteristics
           : baseState.characteristics,
+        characteristicDevelopmentHistory: Array.isArray(safeState.characteristicDevelopmentHistory)
+          ? safeState.characteristicDevelopmentHistory
+          : [],
+        characteristicProgressQuestIds: Array.isArray(safeState.characteristicProgressQuestIds)
+          ? safeState.characteristicProgressQuestIds
+          : [],
         completedQuests: Array.isArray(safeState.completedQuests) ? safeState.completedQuests : [],
         completedDays: Array.isArray(safeState.completedDays) ? safeState.completedDays : [],
         unlockNoticesShown: Array.isArray(safeState.unlockNoticesShown) ? safeState.unlockNoticesShown : [],
@@ -1301,6 +1316,20 @@
       if (!Object.values(normalizedState.characteristics).some((value) => value && typeof value === "object")) {
         normalizedState.stats = { ...normalizedState.stats, ...normalizedState.characteristics };
       }
+      Object.entries(baseState.characteristics).forEach(([name, defaultValue]) => {
+        const savedValue = normalizedState.characteristics[name];
+        if (savedValue && typeof savedValue === "object") {
+          normalizedState.characteristics[name] = {
+            ...defaultValue,
+            ...savedValue,
+            progress: Number.isFinite(savedValue.progress) && savedValue.progress >= 0 ? savedValue.progress : 0
+          };
+        } else if (Number.isFinite(savedValue)) {
+          normalizedState.characteristics[name] = { ...defaultValue, current: savedValue, starting: savedValue, calibration: savedValue };
+        } else {
+          normalizedState.characteristics[name] = { ...defaultValue };
+        }
+      });
 
       return normalizedState;
     }
@@ -1443,6 +1472,54 @@
       document.querySelector("#progress-quests").textContent = gameState.completedQuestCount;
     }
 
+    function getCharacteristicProgressReward(quest) {
+      return characteristicProgressRewards[quest.dataset.difficulty] || 0;
+    }
+
+    function addCharacteristicProgress(quest, sourceId = quest.dataset.questId) {
+      if (gameState.awakening.status !== "completed") return;
+      const characteristic = quest.dataset.characteristicImpact;
+      if (!["strength", "endurance", "intelligence", "charisma", "practicality"].includes(characteristic)) return;
+      if (gameState.characteristicProgressQuestIds.includes(sourceId)) return;
+      const reward = getCharacteristicProgressReward(quest);
+      const state = gameState.characteristics[characteristic];
+      if (!state || !Number.isFinite(state.current)) return;
+
+      state.progress += reward;
+      gameState.characteristicProgressQuestIds.push(sourceId);
+      while (state.progress >= characteristicProgressThreshold) {
+        const previousValue = state.current;
+        state.progress -= characteristicProgressThreshold;
+        state.current += 1;
+        gameState.characteristicDevelopmentHistory.push({
+          characteristic,
+          previousValue,
+          newValue: state.current,
+          source: "quest-development",
+          questId: sourceId,
+          timestamp: new Date().toISOString()
+        });
+      }
+    }
+
+    function updateCharacteristicsView() {
+      document.querySelectorAll("[data-characteristic]").forEach((item) => {
+        const state = gameState.characteristics[item.dataset.characteristic];
+        const value = item.querySelector(".stat-value");
+        const progress = item.querySelector(".stat-progress");
+        const fill = item.querySelector(".stat-fill");
+        if (!state || !Number.isFinite(state.current)) {
+          value.textContent = "—";
+          progress.textContent = "Стартове калібрування не виконано";
+          fill.style.width = "0%";
+          return;
+        }
+        value.textContent = state.current;
+        progress.textContent = `Прогрес: ${state.progress} / ${characteristicProgressThreshold}`;
+        fill.style.width = `${Math.min(100, (state.progress / characteristicProgressThreshold) * 100)}%`;
+      });
+    }
+
     function updateCharacterProgressView() {
       const completedSeriesCount = [...document.querySelectorAll("[data-series-id]")].filter((series) => {
         const seriesState = gameState.seriesProgress[series.dataset.seriesId];
@@ -1461,6 +1538,7 @@
       document.querySelector("#character-progress-streak").textContent = `${gameState.streak} днів`;
       document.querySelector("#character-progress-series").textContent = completedSeriesCount;
       document.querySelector("#character-progress-long-term").textContent = longTermProgress || "Немає прогресу";
+      updateCharacteristicsView();
     }
 
     function updateAwakeningAccess() {
@@ -1707,10 +1785,6 @@
 
     function updateGameStateView() {
       document.querySelector(".today-date").textContent = `ДЕНЬ ${String(gameState.day).padStart(2, "0")}`;
-      document.querySelector("#strength-value").textContent = gameState.stats.strength;
-      document.querySelector("#endurance-value").textContent = gameState.stats.endurance;
-      document.querySelector("#speed-value").textContent = gameState.stats.speed;
-      document.querySelector("#charisma-value").textContent = gameState.stats.charisma;
       updateLevel();
       updateProgressView();
       updateCharacterProgressView();
@@ -1986,6 +2060,7 @@
         }
         gameState.completedQuests.push(questId);
         gameState.completedQuestCount += 1;
+        addCharacteristicProgress(quest, questId);
         if (quest.dataset.socialQuest === "true") {
           gameState.completedSocialQuestCount += 1;
         }
