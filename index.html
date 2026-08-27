@@ -1007,7 +1007,7 @@
       <section class="section" aria-labelledby="calibration-title">
         <div class="calibration-card">
           <h2 id="calibration-title">ПРОБУДЖЕННЯ — СИЛА</h2>
-          <p class="calibration-task">ПРИСІДАННЯ: виконай <strong id="calibration-target">5</strong> присідань.</p>
+          <p class="calibration-task">Тест: <span id="calibration-exercise">Присідання</span>. Виконай <strong id="calibration-target">5</strong> присідань.</p>
           <p class="calibration-level">ТЕСТОВИЙ РІВЕНЬ: <span id="calibration-level">1</span> / 5</p>
           <button id="calibration-complete" class="complete-button" type="button">ЗАВЕРШИТИ ВИПРОБУВАННЯ</button>
           <div id="calibration-rating" class="calibration-rating" hidden>
@@ -1022,6 +1022,7 @@
             </div>
           </div>
           <p id="calibration-completion" class="calibration-completion" hidden>КАЛІБРУВАННЯ: ПРИСІДАННЯ — ЗАВЕРШЕНО</p>
+          <p id="physical-calibration-completion" class="calibration-completion" hidden>ФІЗИЧНЕ КАЛІБРУВАННЯ ЗАВЕРШЕНО</p>
         </div>
       </section>
     </section>
@@ -1041,7 +1042,11 @@
       }
     };
     const language = "uk";
-    const strengthCalibrationLevels = [5, 10, 15, 20, 30];
+    const awakeningCalibrationDefinitions = {
+      squats: { characteristic: "strength", title: "Сила", name: "Присідання", type: "count", levels: [5, 10, 15, 20, 30] },
+      pushups: { characteristic: "strength", title: "Сила", name: "Віджимання", type: "count", levels: [3, 5, 10, 15, 20] },
+      plank: { characteristic: "endurance", title: "Витривалість", name: "Планка", type: "time", levels: [10, 20, 30, 45, 60] }
+    };
     function createDefaultGameState(profile = {}) {
       return {
       schemaVersion: gameStateSchemaVersion,
@@ -1084,7 +1089,27 @@
             normalConfirmations: 0,
             completed: false,
             determinedLevel: null
-          }
+          },
+          pushups: {
+            currentLevel: 1,
+            attempts: [],
+            pendingAttempt: null,
+            normalConfirmations: 0,
+            completed: false,
+            determinedLevel: null
+          },
+          endurance: {
+            plank: {
+              currentLevel: 1,
+              attempts: [],
+              pendingAttempt: null,
+              normalConfirmations: 0,
+              completed: false,
+              determinedLevel: null
+            }
+          },
+          currentExercise: "squats",
+          physicalCompleted: false
         }
       },
       characteristics: {
@@ -1166,20 +1191,26 @@
         ? savedAwakening.status
         : "completed";
       const savedStrengthCalibration = savedAwakening.calibration?.strength;
-      const strengthCalibration = {
-        currentLevel: Number.isInteger(savedStrengthCalibration?.currentLevel)
-          ? Math.min(5, Math.max(1, savedStrengthCalibration.currentLevel))
+      const normalizeCalibration = (savedCalibration) => ({
+        currentLevel: Number.isInteger(savedCalibration?.currentLevel)
+          ? Math.min(5, Math.max(1, savedCalibration.currentLevel))
           : 1,
-        attempts: Array.isArray(savedStrengthCalibration?.attempts) ? savedStrengthCalibration.attempts : [],
-        pendingAttempt: savedStrengthCalibration?.pendingAttempt || null,
-        normalConfirmations: Number.isInteger(savedStrengthCalibration?.normalConfirmations)
-          ? Math.max(0, savedStrengthCalibration.normalConfirmations)
+        attempts: Array.isArray(savedCalibration?.attempts) ? savedCalibration.attempts : [],
+        pendingAttempt: savedCalibration?.pendingAttempt || null,
+        normalConfirmations: Number.isInteger(savedCalibration?.normalConfirmations)
+          ? Math.max(0, savedCalibration.normalConfirmations)
           : 0,
-        completed: savedStrengthCalibration?.completed === true,
-        determinedLevel: Number.isInteger(savedStrengthCalibration?.determinedLevel)
-          ? savedStrengthCalibration.determinedLevel
+        completed: savedCalibration?.completed === true,
+        determinedLevel: Number.isInteger(savedCalibration?.determinedLevel)
+          ? savedCalibration.determinedLevel
           : null
-      };
+      });
+      const strengthCalibration = normalizeCalibration(savedStrengthCalibration);
+      const pushupsCalibration = normalizeCalibration(savedAwakening.calibration?.pushups);
+      const plankCalibration = normalizeCalibration(savedAwakening.calibration?.endurance?.plank);
+      const currentExercise = ["squats", "pushups", "plank"].includes(savedAwakening.calibration?.currentExercise)
+        ? savedAwakening.calibration.currentExercise
+        : (strengthCalibration.completed ? "pushups" : "squats");
       const normalizedState = {
         ...baseState,
         ...safeState,
@@ -1197,7 +1228,13 @@
           status: awakeningStatus,
           startedAt: savedAwakening.startedAt || null,
           completedAt: savedAwakening.completedAt || null,
-          calibration: { strength: strengthCalibration }
+          calibration: {
+            strength: strengthCalibration,
+            pushups: pushupsCalibration,
+            endurance: { plank: plankCalibration },
+            currentExercise,
+            physicalCompleted: savedAwakening.calibration?.physicalCompleted === true
+          }
         },
         longTermQuestProgress: safeState.longTermQuestProgress && typeof safeState.longTermQuestProgress === "object"
           ? safeState.longTermQuestProgress
@@ -1397,31 +1434,49 @@
     }
 
     function updateStrengthCalibrationView() {
-      const calibration = gameState.awakening.calibration.strength;
+      const calibrationState = gameState.awakening.calibration;
+      const exerciseId = calibrationState.currentExercise || "squats";
+      const definition = awakeningCalibrationDefinitions[exerciseId];
+      const calibration = exerciseId === "plank"
+        ? calibrationState.endurance.plank
+        : (exerciseId === "pushups" ? calibrationState.pushups : calibrationState.strength);
       const level = Math.min(5, Math.max(1, calibration.currentLevel));
       const isCompleted = calibration.completed === true;
+      document.querySelector("#calibration-title").textContent = `ПРОБУДЖЕННЯ — ${definition.title.toUpperCase()}`;
+      document.querySelector("#calibration-exercise").textContent = definition.name;
+      document.querySelector("#calibration-target").textContent = definition.levels[level - 1];
+      document.querySelector(".calibration-task").lastChild.textContent = definition.type === "time" ? " секунд утримання планки." : ` ${definition.name.toLowerCase()}.`;
       document.querySelector("#calibration-level").textContent = level;
-      document.querySelector("#calibration-target").textContent = strengthCalibrationLevels[level - 1];
       document.querySelector("#calibration-complete").hidden = isCompleted || calibration.pendingAttempt !== null;
       document.querySelector("#calibration-rating").hidden = isCompleted || calibration.pendingAttempt === null;
       document.querySelector("#calibration-completion").hidden = !isCompleted;
+      document.querySelector("#physical-calibration-completion").hidden = !calibrationState.physicalCompleted;
     }
 
     function startStrengthCalibrationAttempt() {
-      const calibration = gameState.awakening.calibration.strength;
+      const calibrationState = gameState.awakening.calibration;
+      const exerciseId = calibrationState.currentExercise || "squats";
+      const definition = awakeningCalibrationDefinitions[exerciseId];
+      const calibration = exerciseId === "plank"
+        ? calibrationState.endurance.plank
+        : (exerciseId === "pushups" ? calibrationState.pushups : calibrationState.strength);
       if (calibration.completed || calibration.pendingAttempt) return;
       const level = Math.min(5, Math.max(1, calibration.currentLevel));
       calibration.pendingAttempt = {
-        type: "strength-squats",
+        type: exerciseId,
         difficultyLevel: level,
-        targetValue: strengthCalibrationLevels[level - 1]
+        targetValue: definition.levels[level - 1]
       };
       saveGameState();
       updateStrengthCalibrationView();
     }
 
     function submitStrengthCalibrationRating(rating) {
-      const calibration = gameState.awakening.calibration.strength;
+      const calibrationState = gameState.awakening.calibration;
+      const exerciseId = calibrationState.currentExercise || "squats";
+      const calibration = exerciseId === "plank"
+        ? calibrationState.endurance.plank
+        : (exerciseId === "pushups" ? calibrationState.pushups : calibrationState.strength);
       const attempt = calibration.pendingAttempt;
       if (!attempt || calibration.completed) return;
 
@@ -1442,6 +1497,9 @@
         if (calibration.normalConfirmations >= 2) {
           calibration.completed = true;
           calibration.determinedLevel = attempt.difficultyLevel;
+          if (exerciseId === "squats") calibrationState.currentExercise = "pushups";
+          if (exerciseId === "pushups") calibrationState.currentExercise = "plank";
+          if (exerciseId === "plank") calibrationState.physicalCompleted = true;
         }
       }
 
