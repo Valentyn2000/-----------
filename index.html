@@ -674,16 +674,6 @@
       </div>
     </section>
 
-    <section class="section" aria-labelledby="status-title">
-      <p class="section-label" id="status-title">Стан персонажа</p>
-      <div class="status-grid">
-        <div class="status-item"><span class="status-name">Гроші</span><strong class="status-value" id="money-value">0 грн</strong></div>
-        <div class="status-item"><span class="status-name">Здоров’я</span><strong class="status-value" id="health-value">100 / 100</strong></div>
-        <div class="status-item"><span class="status-name">Енергія</span><strong class="status-value" id="energy-value">100 / 100</strong></div>
-        <div class="status-item"><span class="status-name">Настрій</span><strong class="status-value" id="mood-value">100 / 100</strong></div>
-      </div>
-    </section>
-
     <section class="section" aria-labelledby="day-quest-title">
       <p class="section-label" id="day-quest-title">Квест дня</p>
       <div class="day-quest" data-quest-id="day-1-morning-start" data-xp="10">
@@ -1285,10 +1275,6 @@
     }
 
     function updateGameStateView() {
-      document.querySelector("#money-value").textContent = `${gameState.money} грн`;
-      document.querySelector("#health-value").textContent = `${gameState.health} / 100`;
-      document.querySelector("#energy-value").textContent = `${gameState.energy} / 100`;
-      document.querySelector("#mood-value").textContent = `${gameState.mood} / 100`;
       document.querySelector(".today-date").textContent = `ДЕНЬ ${String(gameState.day).padStart(2, "0")}`;
       document.querySelector("#strength-value").textContent = gameState.stats.strength;
       document.querySelector("#endurance-value").textContent = gameState.stats.endurance;
