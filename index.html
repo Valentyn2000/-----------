@@ -1007,9 +1007,11 @@
       <section class="section" aria-labelledby="calibration-title">
         <div class="calibration-card">
           <h2 id="calibration-title">ПРОБУДЖЕННЯ — СИЛА</h2>
-          <p class="calibration-task">Тест: <span id="calibration-exercise">Присідання</span>. Виконай <strong id="calibration-target">5</strong> присідань.</p>
+          <p class="calibration-task">Калібрування: <span id="calibration-exercise">Присідання</span>.</p>
+          <p id="calibration-description" class="calibration-task">Виконай <strong id="calibration-target">5</strong> присідань.</p>
           <p class="calibration-level">ТЕСТОВИЙ РІВЕНЬ: <span id="calibration-level">1</span> / 5</p>
           <button id="calibration-complete" class="complete-button" type="button">ЗАВЕРШИТИ ВИПРОБУВАННЯ</button>
+          <button id="calibration-replace" class="complete-button" type="button" hidden>ЗАМІНИТИ ЗАВДАННЯ</button>
           <div id="calibration-rating" class="calibration-rating" hidden>
             <p class="calibration-rating-title">Як би ти оцінив складність цього випробування?</p>
             <div class="calibration-rating-options">
@@ -1023,6 +1025,7 @@
           </div>
           <p id="calibration-completion" class="calibration-completion" hidden>КАЛІБРУВАННЯ: ПРИСІДАННЯ — ЗАВЕРШЕНО</p>
           <p id="physical-calibration-completion" class="calibration-completion" hidden>ФІЗИЧНЕ КАЛІБРУВАННЯ ЗАВЕРШЕНО</p>
+          <p id="basic-calibration-completion" class="calibration-completion" hidden>БАЗОВЕ КАЛІБРУВАННЯ ЗАВЕРШЕНО</p>
         </div>
       </section>
     </section>
@@ -1046,6 +1049,25 @@
       squats: { characteristic: "strength", title: "Сила", name: "Присідання", type: "count", levels: [5, 10, 15, 20, 30] },
       pushups: { characteristic: "strength", title: "Сила", name: "Віджимання", type: "count", levels: [3, 5, 10, 15, 20] },
       plank: { characteristic: "endurance", title: "Витривалість", name: "Планка", type: "time", levels: [10, 20, 30, 45, 60] }
+    };
+    const awakeningStageDefinitions = {
+      intelligenceLogic: { characteristic: "Інтелект", title: "Логіка", task: "Розв’яжи коротку логічну задачу: продовж ряд 2, 4, 8, 16.", replaceable: false },
+      intelligenceLearning: { characteristic: "Інтелект", title: "Навчання", task: "Прочитай короткий абзац у думках і сформулюй одним реченням його головну ідею.", replaceable: false },
+      intelligenceInformation: { characteristic: "Інтелект", title: "Робота з інформацією", task: "Випиши три найважливіші кроки з будь-якої знайомої тобі простої інструкції.", replaceable: false },
+      charismaSelf: { characteristic: "Харизма", title: "Стартова самооцінка", task: "Оціни свій комфорт у короткому спілкуванні зі знайомою людиною.", questions: ["Оціни свій комфорт, коли потрібно підтримати коротку розмову.", "Оціни свій комфорт, коли потрібно поставити просте запитання.", "Оціни свій комфорт, коли потрібно доречно висловити власну думку."], replaceable: false },
+      charismaSocial: { characteristic: "Харизма", title: "Соціальна взаємодія", task: "Привітайся або коротко поговори зі знайомою людиною.", alternatives: ["Постав просте запитання знайомій людині.", "Підтримай коротку розмову зі знайомою людиною."], replaceable: true },
+      practicalHousehold: { characteristic: "Практичність", title: "Побут", task: "Організуй невелику групу речей у доступному тобі місці.", alternatives: ["Виконай одну просту побутову дію, доступну в твоїй ситуації."], replaceable: true },
+      practicalOrganization: { characteristic: "Практичність", title: "Організація", task: "Підготуй короткий список необхідного для простої задачі.", alternatives: ["Впорядкуй короткий список справ за пріоритетом."], replaceable: true },
+      practicalPlanning: { characteristic: "Практичність", title: "Планування", task: "Склади короткий план із трьох кроків для однієї доступної тобі справи.", alternatives: ["Запиши послідовність із трьох кроків для підготовки до простої задачі."], replaceable: true },
+      practicalProblem: { characteristic: "Практичність", title: "Практична проблема", task: "Виріши просту побутову проблему без припущення про конкретні інструменти чи ресурси.", alternatives: ["Знайди просте рішення для організації доступного тобі робочого місця."], replaceable: true }
+    };
+    const awakeningRatingLabels = {
+      "very-easy": "Дуже легко",
+      easy: "Легко",
+      normal: "Нормально",
+      hard: "Складно",
+      "very-hard": "Дуже складно",
+      impossible: "Неможливо"
     };
     function createDefaultGameState(profile = {}) {
       return {
@@ -1109,7 +1131,10 @@
             }
           },
           currentExercise: "squats",
-          physicalCompleted: false
+          physicalCompleted: false,
+          currentStage: "squats",
+          stages: {},
+          basicCompleted: false
         }
       },
       characteristics: {
@@ -1197,6 +1222,7 @@
           : 1,
         attempts: Array.isArray(savedCalibration?.attempts) ? savedCalibration.attempts : [],
         pendingAttempt: savedCalibration?.pendingAttempt || null,
+        replacements: Number.isInteger(savedCalibration?.replacements) ? Math.max(0, savedCalibration.replacements) : 0,
         normalConfirmations: Number.isInteger(savedCalibration?.normalConfirmations)
           ? Math.max(0, savedCalibration.normalConfirmations)
           : 0,
@@ -1211,6 +1237,11 @@
       const currentExercise = ["squats", "pushups", "plank"].includes(savedAwakening.calibration?.currentExercise)
         ? savedAwakening.calibration.currentExercise
         : (strengthCalibration.completed ? "pushups" : "squats");
+      const savedCurrentStage = savedAwakening.calibration?.currentStage;
+      const currentStage = savedAwakening.calibration?.physicalCompleted && ["squats", "pushups", "plank"].includes(savedCurrentStage)
+        ? "intelligenceLogic"
+        : (savedCurrentStage || (savedAwakening.calibration?.physicalCompleted ? "intelligenceLogic" : currentExercise));
+      const stageStates = Object.fromEntries(Object.keys(awakeningStageDefinitions).map((stageId) => [stageId, normalizeCalibration(savedAwakening.calibration?.stages?.[stageId])]));
       const normalizedState = {
         ...baseState,
         ...safeState,
@@ -1233,7 +1264,10 @@
             pushups: pushupsCalibration,
             endurance: { plank: plankCalibration },
             currentExercise,
-            physicalCompleted: savedAwakening.calibration?.physicalCompleted === true
+            physicalCompleted: savedAwakening.calibration?.physicalCompleted === true,
+            currentStage,
+            stages: stageStates,
+            basicCompleted: savedAwakening.calibration?.basicCompleted === true
           }
         },
         longTermQuestProgress: safeState.longTermQuestProgress && typeof safeState.longTermQuestProgress === "object"
@@ -1435,37 +1469,47 @@
 
     function updateStrengthCalibrationView() {
       const calibrationState = gameState.awakening.calibration;
-      const exerciseId = calibrationState.currentExercise || "squats";
+      const exerciseId = calibrationState.currentStage || calibrationState.currentExercise || "squats";
       const definition = awakeningCalibrationDefinitions[exerciseId];
-      const calibration = exerciseId === "plank"
+      const stageDefinition = awakeningStageDefinitions[exerciseId];
+      const calibration = definition && exerciseId === "plank"
         ? calibrationState.endurance.plank
-        : (exerciseId === "pushups" ? calibrationState.pushups : calibrationState.strength);
+        : (definition ? (exerciseId === "pushups" ? calibrationState.pushups : calibrationState.strength) : (calibrationState.stages[exerciseId] || {}));
       const level = Math.min(5, Math.max(1, calibration.currentLevel));
       const isCompleted = calibration.completed === true;
-      document.querySelector("#calibration-title").textContent = `ПРОБУДЖЕННЯ — ${definition.title.toUpperCase()}`;
-      document.querySelector("#calibration-exercise").textContent = definition.name;
-      document.querySelector("#calibration-target").textContent = definition.levels[level - 1];
-      document.querySelector(".calibration-task").lastChild.textContent = definition.type === "time" ? " секунд утримання планки." : ` ${definition.name.toLowerCase()}.`;
+      const isBasicStage = Boolean(stageDefinition);
+      document.querySelector("#calibration-title").textContent = `ПРОБУДЖЕННЯ — ${(definition?.title || stageDefinition?.characteristic || "").toUpperCase()}`;
+      document.querySelector("#calibration-exercise").textContent = definition?.name || stageDefinition?.title;
+      const stageTask = stageDefinition?.questions?.[calibration.normalConfirmations]
+        || (calibration.replacements > 0 && stageDefinition?.alternatives?.[(calibration.replacements - 1) % stageDefinition.alternatives.length])
+        || stageDefinition?.task;
+      document.querySelector("#calibration-description").textContent = definition
+        ? (definition.type === "time" ? `Виконай ${definition.levels[level - 1]} секунд утримання планки.` : `Виконай ${definition.levels[level - 1]} ${definition.name.toLowerCase()}.`)
+        : stageTask;
       document.querySelector("#calibration-level").textContent = level;
       document.querySelector("#calibration-complete").hidden = isCompleted || calibration.pendingAttempt !== null;
       document.querySelector("#calibration-rating").hidden = isCompleted || calibration.pendingAttempt === null;
       document.querySelector("#calibration-completion").hidden = !isCompleted;
       document.querySelector("#physical-calibration-completion").hidden = !calibrationState.physicalCompleted;
+      document.querySelector("#basic-calibration-completion").hidden = !calibrationState.basicCompleted;
+      document.querySelector("#calibration-replace").hidden = !isBasicStage || !stageDefinition.replaceable || isCompleted || calibration.pendingAttempt !== null;
     }
 
     function startStrengthCalibrationAttempt() {
       const calibrationState = gameState.awakening.calibration;
-      const exerciseId = calibrationState.currentExercise || "squats";
+      const exerciseId = calibrationState.currentStage || calibrationState.currentExercise || "squats";
       const definition = awakeningCalibrationDefinitions[exerciseId];
-      const calibration = exerciseId === "plank"
+      const stageDefinition = awakeningStageDefinitions[exerciseId];
+      const calibration = definition && exerciseId === "plank"
         ? calibrationState.endurance.plank
-        : (exerciseId === "pushups" ? calibrationState.pushups : calibrationState.strength);
+        : (definition ? (exerciseId === "pushups" ? calibrationState.pushups : calibrationState.strength) : (calibrationState.stages[exerciseId] || {}));
       if (calibration.completed || calibration.pendingAttempt) return;
       const level = Math.min(5, Math.max(1, calibration.currentLevel));
       calibration.pendingAttempt = {
-        type: exerciseId,
+        type: definition ? exerciseId : `awakening-${exerciseId}`,
         difficultyLevel: level,
-        targetValue: definition.levels[level - 1]
+        targetValue: definition ? definition.levels[level - 1] : null,
+        task: stageDefinition?.title || definition?.name
       };
       saveGameState();
       updateStrengthCalibrationView();
@@ -1473,10 +1517,11 @@
 
     function submitStrengthCalibrationRating(rating) {
       const calibrationState = gameState.awakening.calibration;
-      const exerciseId = calibrationState.currentExercise || "squats";
-      const calibration = exerciseId === "plank"
+      const exerciseId = calibrationState.currentStage || calibrationState.currentExercise || "squats";
+      const definition = awakeningCalibrationDefinitions[exerciseId];
+      const calibration = definition && exerciseId === "plank"
         ? calibrationState.endurance.plank
-        : (exerciseId === "pushups" ? calibrationState.pushups : calibrationState.strength);
+        : (definition ? (exerciseId === "pushups" ? calibrationState.pushups : calibrationState.strength) : calibrationState.stages[exerciseId]);
       const attempt = calibration.pendingAttempt;
       if (!attempt || calibration.completed) return;
 
@@ -1497,12 +1542,37 @@
         if (calibration.normalConfirmations >= 2) {
           calibration.completed = true;
           calibration.determinedLevel = attempt.difficultyLevel;
-          if (exerciseId === "squats") calibrationState.currentExercise = "pushups";
-          if (exerciseId === "pushups") calibrationState.currentExercise = "plank";
-          if (exerciseId === "plank") calibrationState.physicalCompleted = true;
+          if (exerciseId === "squats") { calibrationState.currentExercise = "pushups"; calibrationState.currentStage = "pushups"; }
+          if (exerciseId === "pushups") { calibrationState.currentExercise = "plank"; calibrationState.currentStage = "plank"; }
+          if (exerciseId === "plank") { calibrationState.physicalCompleted = true; calibrationState.currentStage = "intelligenceLogic"; }
+          advanceBasicCalibration(calibrationState, exerciseId);
         }
       }
 
+      saveGameState();
+      updateStrengthCalibrationView();
+    }
+
+    function advanceBasicCalibration(calibrationState, stageId) {
+      const orderedStages = ["intelligenceLogic", "intelligenceLearning", "intelligenceInformation", "charismaSelf", "charismaSocial", "practicalHousehold", "practicalOrganization", "practicalPlanning", "practicalProblem"];
+      const index = orderedStages.indexOf(stageId);
+      if (index === -1) return;
+      const stage = calibrationState.stages[stageId];
+      if (!stage?.completed) return;
+      if (index === orderedStages.length - 1) {
+        calibrationState.basicCompleted = true;
+        return;
+      }
+      calibrationState.currentStage = orderedStages[index + 1];
+    }
+
+    function replaceCalibrationTask() {
+      const calibrationState = gameState.awakening.calibration;
+      const stageId = calibrationState.currentStage;
+      const stage = calibrationState.stages[stageId];
+      if (!awakeningStageDefinitions[stageId]?.replaceable || !stage || stage.pendingAttempt) return;
+      stage.replacements = Number(stage.replacements || 0) + 1;
+      stage.attempts.push({ type: `awakening-${stageId}`, task: "replacement", rating: "replaced", completed: false, replaced: true, recordedAt: new Date().toISOString() });
       saveGameState();
       updateStrengthCalibrationView();
     }
@@ -1815,6 +1885,7 @@
     });
 
     document.querySelector("#calibration-complete").addEventListener("click", startStrengthCalibrationAttempt);
+    document.querySelector("#calibration-replace").addEventListener("click", replaceCalibrationTask);
     document.querySelectorAll(".calibration-rating-option").forEach((option) => {
       option.addEventListener("click", () => submitStrengthCalibrationRating(option.dataset.rating));
     });
