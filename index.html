@@ -404,6 +404,24 @@
     .character-progress-name { color: #bbc7be; font-size: 12px; }
     .character-progress-value { color: var(--accent); font-size: 15px; font-weight: 700; text-align: right; }
 
+    .achievement-list { display: grid; gap: 8px; }
+
+    .achievement {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 13px 14px;
+      border: 1px solid var(--line);
+      background: rgba(17, 24, 23, .78);
+    }
+
+    .achievement.completed { border-color: #526843; background: rgba(48, 74, 35, .24); }
+    .achievement-name { margin: 0 0 4px; color: #bbc7be; font-size: 12px; }
+    .achievement-condition { margin: 0; color: var(--muted); font-size: 10px; line-height: 1.4; }
+    .achievement-status { flex: 0 0 auto; color: var(--orange); font-size: 9px; font-weight: 700; letter-spacing: .08em; }
+    .achievement.completed .achievement-status { color: var(--accent); }
+
     .day-quest {
       padding: 17px 16px;
       border: 1px solid #526843;
@@ -724,6 +742,36 @@
         <p class="day-quest-task">Завдання: провести щонайменше 1 годину без TikTok, Shorts або Reels.</p>
         <p class="day-quest-reward">НАГОРОДА: +15 XP, +5 НАСТРОЮ</p>
         <button class="complete-button" type="button">ВИКОНАНО</button>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="achievements-title">
+      <p class="section-label" id="achievements-title">Досягнення</p>
+      <div class="achievement-list">
+        <article class="achievement" data-achievement-id="first-step">
+          <div><p class="achievement-name">Перший крок</p><p class="achievement-condition">Завершити 1 квест</p></div>
+          <strong class="achievement-status">ЗАБЛОКОВАНО</strong>
+        </article>
+        <article class="achievement" data-achievement-id="finding-rhythm">
+          <div><p class="achievement-name">Входжу в ритм</p><p class="achievement-condition">Завершити 5 квестів</p></div>
+          <strong class="achievement-status">ЗАБЛОКОВАНО</strong>
+        </article>
+        <article class="achievement" data-achievement-id="ten-quests">
+          <div><p class="achievement-name">Десятка</p><p class="achievement-condition">Завершити 10 квестів</p></div>
+          <strong class="achievement-status">ЗАБЛОКОВАНО</strong>
+        </article>
+        <article class="achievement" data-achievement-id="three-day-streak">
+          <div><p class="achievement-name">Три дні поспіль</p><p class="achievement-condition">Досягнути streak 3 дні</p></div>
+          <strong class="achievement-status">ЗАБЛОКОВАНО</strong>
+        </article>
+        <article class="achievement" data-achievement-id="discipline-week">
+          <div><p class="achievement-name">Тиждень дисципліни</p><p class="achievement-condition">Досягнути streak 7 днів</p></div>
+          <strong class="achievement-status">ЗАБЛОКОВАНО</strong>
+        </article>
+        <article class="achievement" data-achievement-id="first-series">
+          <div><p class="achievement-name">Перша серія</p><p class="achievement-condition">Завершити 1 серію квестів</p></div>
+          <strong class="achievement-status">ЗАБЛОКОВАНО</strong>
+        </article>
       </div>
     </section>
 
@@ -1278,6 +1326,29 @@
       document.querySelector("#character-progress-long-term").textContent = longTermProgress || "Немає прогресу";
     }
 
+    function updateAchievementsView() {
+      const completedQuestCount = gameState.completedQuestCount;
+      const completedSeriesCount = [...document.querySelectorAll("[data-series-id]")].filter((series) => {
+        const seriesState = gameState.seriesProgress[series.dataset.seriesId];
+        const stageCount = series.querySelectorAll("[data-series-stage]").length;
+        return stageCount > 0 && seriesState?.completedStages?.length === stageCount;
+      }).length;
+      const achievementStates = {
+        "first-step": completedQuestCount >= 1,
+        "finding-rhythm": completedQuestCount >= 5,
+        "ten-quests": completedQuestCount >= 10,
+        "three-day-streak": gameState.streak >= 3,
+        "discipline-week": gameState.streak >= 7,
+        "first-series": completedSeriesCount >= 1
+      };
+
+      document.querySelectorAll("[data-achievement-id]").forEach((achievement) => {
+        const isCompleted = achievementStates[achievement.dataset.achievementId] === true;
+        achievement.classList.toggle("completed", isCompleted);
+        achievement.querySelector(".achievement-status").textContent = isCompleted ? "ВИКОНАНО" : "ЗАБЛОКОВАНО";
+      });
+    }
+
     function hasNewlyAvailableContent(previousLevel, currentLevel) {
       return [...document.querySelectorAll("[data-pool-quest], [data-series-id], [data-long-term-id]")].some((item) => {
         const minLevel = Number(item.dataset.minLevel || 1);
@@ -1329,6 +1400,7 @@
       updateLevel();
       updateProgressView();
       updateCharacterProgressView();
+      updateAchievementsView();
       updateSocialProgressView();
       updateExperience();
       updateQuestAvailability();
