@@ -73,6 +73,42 @@
       display: block;
     }
 
+    .library-preview {
+      display: grid;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .library-item {
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      background: rgba(17, 24, 23, .78);
+    }
+
+    .library-item h3 {
+      margin: 0 0 6px;
+      color: var(--accent);
+      font-size: 16px;
+    }
+
+    .library-item p {
+      margin: 0 0 6px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.5;
+    }
+
+    .library-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      color: var(--text);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+
     .home-cta {
       padding: 18px 16px;
       border: 1px solid var(--line);
@@ -1157,6 +1193,296 @@
       }
     };
     const language = "uk";
+
+    const questTypeDefinitions = {
+      repetitions: "repetitions",
+      duration: "duration",
+      measuredTime: "measuredTime",
+      distance: "distance",
+      completion: "completion"
+    };
+
+    const characteristicDefinitions = {
+      strength: "strength",
+      endurance: "endurance",
+      intelligence: "intelligence",
+      charisma: "charisma",
+      practicality: "practicality"
+    };
+
+    const difficultyDefinitions = {
+      easy: "easy",
+      medium: "medium",
+      hard: "hard",
+      veryHard: "veryHard"
+    };
+
+    const questLibrary = {
+      metadata: {
+        version: 1,
+        name: "life-game-quest-library",
+        supportedQuestTypes: Object.values(questTypeDefinitions),
+        supportedCharacteristics: Object.values(characteristicDefinitions),
+        supportedDifficulties: Object.values(difficultyDefinitions)
+      },
+      quests: [
+        {
+          id: "library-squats-12",
+          title: "12 присідань",
+          description: "Плавно виконай 12 присідань без ривків.",
+          category: "Фізичний розвиток",
+          characteristicImpact: "strength",
+          questType: questTypeDefinitions.repetitions,
+          difficulty: difficultyDefinitions.easy,
+          xpReward: 12,
+          characteristicProgressReward: 2,
+          repeatable: true,
+          cooldown: { type: "day", amount: 1 },
+          requirements: { minimumAvailableTime: 5 },
+          safety: { physical: true, lowImpact: true },
+          parameters: { reps: 12, minValue: 1, maxValue: 20, step: 1 },
+          feedbackEnabled: true,
+          active: true
+        },
+        {
+          id: "library-plank-20s",
+          title: "Планка 20 секунд",
+          description: "Утримай стабільне положення планки 20 секунд.",
+          category: "Витривалість",
+          characteristicImpact: "endurance",
+          questType: questTypeDefinitions.duration,
+          difficulty: difficultyDefinitions.easy,
+          xpReward: 15,
+          characteristicProgressReward: 2,
+          repeatable: true,
+          cooldown: { type: "day", amount: 1 },
+          requirements: { minimumAvailableTime: 2 },
+          safety: { physical: true, lowImpact: true },
+          parameters: { durationSeconds: 20 },
+          feedbackEnabled: true,
+          active: true
+        },
+        {
+          id: "library-reading-summary",
+          title: "Короткий опис прочитаного",
+          description: "Прочитай один короткий абзац і сформулюй головну думку одним реченням.",
+          category: "Інтелект",
+          characteristicImpact: "intelligence",
+          questType: questTypeDefinitions.completion,
+          difficulty: difficultyDefinitions.medium,
+          xpReward: 18,
+          characteristicProgressReward: 3,
+          repeatable: true,
+          cooldown: { type: "day", amount: 1 },
+          requirements: { minimumAvailableTime: 6 },
+          safety: { cognitive: true },
+          parameters: { completionFlag: true },
+          feedbackEnabled: true,
+          active: true
+        },
+        {
+          id: "library-focus-session",
+          title: "Сесія зосередження",
+          description: "Проведи 15 хвилин без відволікань на одній задачі.",
+          category: "Інтелект",
+          characteristicImpact: "intelligence",
+          questType: questTypeDefinitions.measuredTime,
+          difficulty: difficultyDefinitions.medium,
+          xpReward: 24,
+          characteristicProgressReward: 3,
+          repeatable: true,
+          cooldown: { type: "day", amount: 1 },
+          requirements: { minimumAvailableTime: 15 },
+          safety: { cognitive: true },
+          parameters: { minValue: 900, maxValue: 1800, step: 60 },
+          feedbackEnabled: true,
+          active: true
+        },
+        {
+          id: "library-walk-2000m",
+          title: "Пішохідна дистанція 2 км",
+          description: "Пройди 2 кілометри в комфортному темпі.",
+          category: "Витривалість",
+          characteristicImpact: "endurance",
+          questType: questTypeDefinitions.distance,
+          difficulty: difficultyDefinitions.medium,
+          xpReward: 26,
+          characteristicProgressReward: 3,
+          repeatable: true,
+          cooldown: { type: "day", amount: 2 },
+          requirements: { minimumAvailableTime: 20 },
+          safety: { physical: true, lowImpact: true },
+          parameters: { targetDistance: 2000, distanceUnit: "m" },
+          feedbackEnabled: true,
+          active: true
+        },
+        {
+          id: "library-short-conversation",
+          title: "Коротка вітальна розмова",
+          description: "Почни коротку ввічливу розмову з людиною в комфортному контексті.",
+          category: "Соціальне життя",
+          characteristicImpact: "charisma",
+          questType: questTypeDefinitions.completion,
+          difficulty: difficultyDefinitions.easy,
+          xpReward: 16,
+          characteristicProgressReward: 2,
+          repeatable: true,
+          cooldown: { type: "day", amount: 1 },
+          requirements: { requiredContext: "socially-safe", minimumAvailableTime: 3 },
+          safety: { social: true, respectful: true },
+          parameters: { completionFlag: true },
+          feedbackEnabled: true,
+          active: true
+        },
+        {
+          id: "library-room-reset",
+          title: "Очищення робочого місця",
+          description: "Розстав речі за місцями на одній компактній ділянці.",
+          category: "Практичність",
+          characteristicImpact: "practicality",
+          questType: questTypeDefinitions.completion,
+          difficulty: difficultyDefinitions.easy,
+          xpReward: 14,
+          characteristicProgressReward: 2,
+          repeatable: true,
+          cooldown: { type: "day", amount: 1 },
+          requirements: { minimumAvailableTime: 8 },
+          safety: { safeEnvironment: true },
+          parameters: { completionFlag: true },
+          feedbackEnabled: true,
+          active: true
+        },
+        {
+          id: "library-plan-three-steps",
+          title: "План із трьох кроків",
+          description: "Склади короткий план із трьох пунктів для простої справи.",
+          category: "Практичність",
+          characteristicImpact: "practicality",
+          questType: questTypeDefinitions.completion,
+          difficulty: difficultyDefinitions.medium,
+          xpReward: 20,
+          characteristicProgressReward: 3,
+          repeatable: true,
+          cooldown: { type: "day", amount: 1 },
+          requirements: { minimumAvailableTime: 7 },
+          safety: { safeEnvironment: true },
+          parameters: { completionFlag: true },
+          feedbackEnabled: true,
+          active: true
+        },
+        {
+          id: "library-mobility-10min",
+          title: "10 хвилин мобільності",
+          description: "Виконай легку мобільність або розминку 10 хвилин.",
+          category: "Фізичний розвиток",
+          characteristicImpact: "endurance",
+          questType: questTypeDefinitions.duration,
+          difficulty: difficultyDefinitions.easy,
+          xpReward: 17,
+          characteristicProgressReward: 2,
+          repeatable: true,
+          cooldown: { type: "day", amount: 1 },
+          requirements: { minimumAvailableTime: 10 },
+          safety: { physical: true, lowImpact: true },
+          parameters: { durationSeconds: 600 },
+          feedbackEnabled: true,
+          active: true
+        },
+        {
+          id: "library-knowledge-check",
+          title: "Перевірка знань",
+          description: "Відповідай на 5 простих питань або короткий тест з однієї теми.",
+          category: "Інтелект",
+          characteristicImpact: "intelligence",
+          questType: questTypeDefinitions.repetitions,
+          difficulty: difficultyDefinitions.medium,
+          xpReward: 22,
+          characteristicProgressReward: 3,
+          repeatable: true,
+          cooldown: { type: "day", amount: 2 },
+          requirements: { minimumAvailableTime: 12 },
+          safety: { cognitive: true },
+          parameters: { reps: 5 },
+          feedbackEnabled: true,
+          active: true
+        }
+      ]
+    };
+
+    const libraryQuestOrder = questLibrary.quests.map((quest) => quest.id);
+
+    function normalizeQuest(rawQuest) {
+      if (!rawQuest || typeof rawQuest !== "object") return null;
+      const validCharacteristic = rawQuest.characteristicImpact == null || Object.values(characteristicDefinitions).includes(rawQuest.characteristicImpact);
+      const validType = Object.values(questTypeDefinitions).includes(rawQuest.questType);
+      const validDifficulty = Object.values(difficultyDefinitions).includes(rawQuest.difficulty);
+
+      if (!validCharacteristic || !validType || !validDifficulty) {
+        console.warn("Некоректний формат квесту:", rawQuest);
+        return null;
+      }
+
+      return {
+        id: String(rawQuest.id || "untitled-quest"),
+        title: String(rawQuest.title || "Без назви"),
+        description: String(rawQuest.description || ""),
+        category: String(rawQuest.category || "General"),
+        characteristicImpact: rawQuest.characteristicImpact,
+        questType: rawQuest.questType,
+        difficulty: rawQuest.difficulty,
+        xpReward: Number(rawQuest.xpReward) || 0,
+        characteristicProgressReward: Number(rawQuest.characteristicProgressReward) || 0,
+        repeatable: Boolean(rawQuest.repeatable),
+        cooldown: rawQuest.cooldown && typeof rawQuest.cooldown === "object" ? rawQuest.cooldown : { type: "day", amount: 1 },
+        requirements: rawQuest.requirements && typeof rawQuest.requirements === "object" ? rawQuest.requirements : {},
+        safety: rawQuest.safety && typeof rawQuest.safety === "object" ? rawQuest.safety : { generic: true },
+        parameters: rawQuest.parameters && typeof rawQuest.parameters === "object" ? rawQuest.parameters : {},
+        feedbackEnabled: rawQuest.feedbackEnabled !== false,
+        active: rawQuest.active !== false
+      };
+    }
+
+    function getQuestLibrary() {
+      return questLibrary.quests
+        .map((quest) => normalizeQuest(quest))
+        .filter(Boolean);
+    }
+
+    function renderQuestLibraryPreview() {
+      const questsScreen = document.getElementById("quests-screen");
+      if (!questsScreen) return;
+
+      const existingPreview = document.getElementById("quest-library-preview");
+      if (existingPreview) existingPreview.remove();
+
+      const previewSection = document.createElement("section");
+      previewSection.className = "section";
+      previewSection.id = "quest-library-preview";
+      previewSection.innerHTML = `
+        <p class="section-label">Бібліотека квестів</p>
+        <div class="library-preview"></div>
+      `;
+
+      const previewList = previewSection.querySelector(".library-preview");
+      getQuestLibrary().forEach((quest) => {
+        const card = document.createElement("article");
+        card.className = "library-item";
+        card.innerHTML = `
+          <h3>${quest.title}</h3>
+          <p>${quest.description}</p>
+          <div class="library-meta">
+            <span>${quest.questType}</span>
+            <span>${quest.characteristicImpact || "neutral"}</span>
+            <span>${quest.difficulty}</span>
+            <span>+${quest.xpReward} XP</span>
+          </div>
+        `;
+        previewList.appendChild(card);
+      });
+
+      questsScreen.appendChild(previewSection);
+    }
+
     const characteristicProgressThreshold = 10;
     const characteristicProgressRewards = { easy: 2, medium: 3, hard: 4, veryHard: 5 };
     const awakeningCalibrationDefinitions = {
@@ -1340,6 +1666,8 @@
         const section = document.querySelector(selector);
         if (section && questsScreen) questsScreen.appendChild(section);
       });
+
+      renderQuestLibraryPreview();
 
       const characterSections = [
         'section[aria-labelledby="stats-title"]',
