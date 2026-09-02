@@ -1522,6 +1522,9 @@
         selectedQuestIds: Array.isArray(safeSelection.selectedQuestIds)
           ? safeSelection.selectedQuestIds.filter((questId) => typeof questId === "string")
           : [],
+        instances: safeSelection.instances && typeof safeSelection.instances === "object"
+          ? safeSelection.instances
+          : {},
         recentSelections: recentSelections.filter((entry) => entry && typeof entry === "object" && typeof entry.id === "string" && typeof entry.selectedAt === "string"),
         replacementHistory: replacementHistory.filter((entry) => entry && typeof entry === "object" && typeof entry.oldQuestId === "string" && typeof entry.newQuestId === "string" && typeof entry.timestamp === "string")
       };
@@ -1648,6 +1651,66 @@
       });
     }
 
+    const feedbackDeltas = { "very-easy": 2, easy: 1, normal: 0, hard: -1, "very-hard": -2 };
+    const physicalDifficultyOrder = ["easy", "medium", "hard", "veryHard"];
+
+    function getAdaptiveScore(characteristic) {
+      if (!isPhysicalAlphaCharacteristic(characteristic)) return 0;
+      return Math.max(-3, Math.min(3, Number(gameState.adaptiveDifficulty?.[characteristic]) || 0));
+    }
+
+    function getAdaptiveDifficulty(characteristic, baseDifficulty) {
+      const baseIndex = Math.max(0, physicalDifficultyOrder.indexOf(baseDifficulty));
+      const score = getAdaptiveScore(characteristic);
+      const offset = score >= 2 ? 1 : (score <= -2 ? -1 : 0);
+      return physicalDifficultyOrder[Math.max(0, Math.min(physicalDifficultyOrder.length - 1, baseIndex + offset))];
+    }
+
+    function adaptQuestParameters(quest) {
+      const parameters = { ...(quest.parameters || {}) };
+      const score = getAdaptiveScore(quest.characteristicImpact);
+      const step = Number(parameters.step);
+      const adaptValue = (key) => {
+        const baseValue = Number(parameters[key]);
+        if (!Number.isFinite(baseValue) || !Number.isFinite(step) || step <= 0) return;
+        const direction = score >= 2 ? 1 : (score <= -2 ? -1 : 0);
+        const minValue = Number.isFinite(Number(parameters.minValue)) ? Number(parameters.minValue) : baseValue;
+        const maxValue = Number.isFinite(Number(parameters.maxValue)) ? Number(parameters.maxValue) : baseValue;
+        parameters[key] = Math.max(minValue, Math.min(maxValue, baseValue + (direction * step)));
+      };
+      if (quest.questType === questTypeDefinitions.repetitions) adaptValue("reps");
+      if (quest.questType === questTypeDefinitions.duration) adaptValue("durationSeconds");
+      return parameters;
+    }
+
+    function createQuestInstance(quest) {
+      return {
+        ...quest,
+        difficulty: getAdaptiveDifficulty(quest.characteristicImpact, quest.difficulty),
+        parameters: adaptQuestParameters(quest),
+        feedbackSubmitted: false
+      };
+    }
+
+    function ensureQuestInstances(ids) {
+      if (!gameState.questSelection.instances || typeof gameState.questSelection.instances !== "object") gameState.questSelection.instances = {};
+      ids.forEach((questId) => {
+        if (gameState.questSelection.instances[questId]) return;
+        const quest = getQuestLibrary().find((candidate) => candidate.id === questId);
+        if (quest) gameState.questSelection.instances[questId] = createQuestInstance(quest);
+      });
+      return gameState.questSelection.instances;
+    }
+
+    function getQuestInstance(questId) {
+      const baseQuest = getQuestLibrary().find((candidate) => candidate.id === questId);
+      if (!baseQuest) return null;
+      const hadInstance = Boolean(gameState.questSelection.instances?.[questId]);
+      ensureQuestInstances([questId]);
+      if (!hadInstance) saveGameState();
+      return gameState.questSelection.instances[questId] || baseQuest;
+    }
+
     function scoreQuestForRecommendation(quest, selectedIds, recentSelections) {
       let score = 0;
       const characteristicValue = getCharacteristicValue(quest.characteristicImpact);
@@ -1660,7 +1723,8 @@
       }
       if (quest.characteristicImpact && characteristicValue !== null) {
         const desiredDifficulty = characteristicValue <= 2 ? "easy" : (characteristicValue <= 4 ? "medium" : (characteristicValue <= 6 ? "hard" : "veryHard"));
-        const difference = Math.abs(getDifficultyOrderValue(quest.difficulty) - getDifficultyOrderValue(desiredDifficulty));
+        const preferredDifficulty = getAdaptiveDifficulty(quest.characteristicImpact, desiredDifficulty);
+        const difference = Math.abs(getDifficultyOrderValue(quest.difficulty) - getDifficultyOrderValue(preferredDifficulty));
         score += difference * 80;
       }
       if (selectedIds.length) {
@@ -1746,6 +1810,10 @@
         ...selectionState,
         dateKey: todayKey,
         selectedQuestIds: freshSelection,
+        instances: Object.fromEntries(freshSelection.map((questId) => {
+          const quest = getQuestLibrary().find((candidate) => candidate.id === questId);
+          return [questId, quest ? createQuestInstance(quest) : null];
+        }).filter((entry) => entry[1])),
         recentSelections: selectionState.recentSelections.filter((entry) => Date.now() - new Date(entry.selectedAt).getTime() < 14 * 24 * 60 * 60 * 1000),
         replacementHistory: selectionState.replacementHistory || []
       };
@@ -1859,6 +1927,7 @@
       if (gameState.dailyState?.dateKey === getTodayKey()) {
         gameState.dailyState.generatedQuestIds = [...updatedSelectedQuestIds];
       }
+      ensureQuestInstances([replacementQuest.id]);
       saveGameState();
       renderRecommendedQuests();
       return { success: true, replacementId: replacementQuest.id, message: "Квест успішно замінено." };
@@ -1872,7 +1941,7 @@
     }
 
     function completePhysicalQuestFromCard(questId, completionResult = null) {
-      const quest = getQuestLibrary().find((candidate) => candidate.id === questId);
+      const quest = getQuestInstance(questId);
       if (!quest || gameState.completedQuests.includes(questId)) return false;
 
       gameState.experience += Number(quest.xpReward || 0);
@@ -1906,6 +1975,41 @@
       updateGameStateView();
       updateDailyCycleView();
       return true;
+    }
+
+    function showQuestFeedback(detail, quest) {
+      if (!detail || !quest || quest.feedbackEnabled === false || quest.feedbackSubmitted) return;
+      if (detail.querySelector(".quest-feedback")) return;
+      const feedback = document.createElement("div");
+      feedback.className = "quest-feedback";
+      feedback.innerHTML = `<p><strong>ЯК ТОБІ БУЛО?</strong></p><div class="quest-feedback-options" style="display:flex; gap:8px; flex-wrap:wrap;">${[
+        ["very-easy", "ДУЖЕ ЛЕГКО"], ["easy", "ЛЕГКО"], ["normal", "НОРМАЛЬНО"], ["hard", "СКЛАДНО"], ["very-hard", "ДУЖЕ СКЛАДНО"]
+      ].map(([value, label]) => `<button class="complete-button quest-feedback-button" type="button" data-feedback="${value}">${label}</button>`).join("")}</div><p class="quest-feedback-saved" role="status"></p>`;
+      feedback.querySelectorAll(".quest-feedback-button").forEach((button) => {
+        button.addEventListener("click", () => {
+          if (quest.feedbackSubmitted) return;
+          const feedbackValue = button.dataset.feedback;
+          const delta = feedbackDeltas[feedbackValue];
+          if (!Number.isFinite(delta) || !isPhysicalAlphaCharacteristic(quest.characteristicImpact)) return;
+          const currentScore = getAdaptiveScore(quest.characteristicImpact);
+          if (!gameState.adaptiveDifficulty || typeof gameState.adaptiveDifficulty !== "object") gameState.adaptiveDifficulty = {};
+          gameState.adaptiveDifficulty[quest.characteristicImpact] = Math.max(-3, Math.min(3, currentScore + delta));
+          gameState.questFeedbackHistory.push({
+            questId: quest.id,
+            characteristicImpact: quest.characteristicImpact,
+            questType: quest.questType,
+            difficulty: quest.difficulty,
+            feedback: feedbackValue,
+            parameters: { ...(quest.parameters || {}) },
+            timestamp: new Date().toISOString()
+          });
+          quest.feedbackSubmitted = true;
+          button.closest(".quest-feedback-options").querySelectorAll("button").forEach((item) => { item.hidden = true; });
+          feedback.querySelector(".quest-feedback-saved").textContent = "Оцінку збережено";
+          saveGameState();
+        });
+      });
+      detail.appendChild(feedback);
     }
 
     function setupTimedQuest(detail, quest) {
@@ -1944,6 +2048,7 @@
             status.textContent = "КВЕСТ ВИКОНАНО";
             setButtons(false, true);
             completePhysicalQuestFromCard(quest.id, { exerciseId: quest.exerciseId, value: targetSeconds, unit: "seconds" });
+            showQuestFeedback(detail, quest);
           }
         } else {
           timeDisplay.textContent = formatQuestTime(currentElapsed());
@@ -1980,6 +2085,7 @@
         status.textContent = "КВЕСТ ВИКОНАНО";
         setButtons(false, true);
         completePhysicalQuestFromCard(quest.id, { exerciseId: quest.exerciseId, value: elapsedSeconds, unit: "seconds" });
+        showQuestFeedback(detail, quest);
         renderTimer();
       };
       const restart = () => {
@@ -2030,7 +2136,7 @@
       }
 
       ids.forEach((questId) => {
-        const quest = getQuestLibrary().find((candidate) => candidate.id === questId);
+        const quest = getQuestInstance(questId);
         if (!quest) return;
 
         const item = document.createElement("article");
@@ -2075,6 +2181,10 @@
           }
           const result = completePhysicalQuestFromCard(quest.id);
           if (result) {
+            if (quest.feedbackEnabled !== false) {
+              item.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+              showQuestFeedback(item.querySelector(".quest-detail-panel"), quest);
+            }
             const button = event.currentTarget;
             button.textContent = "ВИКОНАНО";
             button.disabled = true;
@@ -2132,6 +2242,7 @@
             buttonEvent.preventDefault();
             buttonEvent.stopPropagation();
             if (!completePhysicalQuestFromCard(quest.id)) return;
+            showQuestFeedback(detail, quest);
             const btn = buttonEvent.currentTarget;
             btn.textContent = "ВИКОНАНО";
             btn.disabled = true;
@@ -2310,9 +2421,11 @@
       questSelection: {
         dateKey: null,
         selectedQuestIds: [],
+        instances: {},
         recentSelections: [],
         replacementHistory: []
       },
+      questFeedbackHistory: [],
       characteristicDevelopmentHistory: [],
       characteristicProgressQuestIds: [],
       skills: {},
@@ -2612,6 +2725,12 @@
         characteristicProgressQuestIds: Array.isArray(safeState.characteristicProgressQuestIds)
           ? safeState.characteristicProgressQuestIds
           : [],
+        questFeedbackHistory: Array.isArray(safeState.questFeedbackHistory) ? safeState.questFeedbackHistory : [],
+        adaptiveDifficulty: {
+          ...(safeState.adaptiveDifficulty && typeof safeState.adaptiveDifficulty === "object" ? safeState.adaptiveDifficulty : {}),
+          strength: Math.max(-3, Math.min(3, Number(safeState.adaptiveDifficulty?.strength) || 0)),
+          endurance: Math.max(-3, Math.min(3, Number(safeState.adaptiveDifficulty?.endurance) || 0))
+        },
         completedQuests: Array.isArray(safeState.completedQuests) ? safeState.completedQuests : [],
         completedDays: Array.isArray(safeState.completedDays) ? safeState.completedDays : [],
         dailyState: {
@@ -3693,7 +3812,7 @@
         exerciseId = questDefinition.exerciseId || null;
       }
       if (!exerciseId || !getPhysicalExerciseDefinition(exerciseId)) return false;
-      const parameters = questDefinition?.parameters || {};
+      const parameters = quest.parameters || questDefinition?.parameters || {};
       let value = null;
       if (completionResult && completionResult.exerciseId === exerciseId) {
         value = Number(completionResult.value);
