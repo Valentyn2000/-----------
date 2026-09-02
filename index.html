@@ -41,14 +41,104 @@
       mask-image: linear-gradient(to bottom, black, transparent 75%);
     }
 
+    body {
+      overflow-x: hidden;
+    }
+
     main {
       position: relative;
       width: min(100%, 480px);
       min-height: 100vh;
       margin: 0 auto;
-      padding: 28px 20px 32px;
+      padding: 28px 20px calc(96px + env(safe-area-inset-bottom));
       display: flex;
       flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    .app-shell {
+      display: none;
+    }
+
+    .app-shell.ready {
+      display: block;
+    }
+
+    .screen {
+      display: none;
+      width: 100%;
+    }
+
+    .screen.active {
+      display: block;
+    }
+
+    .home-cta {
+      padding: 18px 16px;
+      border: 1px solid var(--line);
+      background: linear-gradient(135deg, var(--surface-light), var(--surface));
+    }
+
+    .home-cta h2 {
+      margin: 0 0 8px;
+      color: var(--accent);
+      font-size: 20px;
+    }
+
+    .home-cta p {
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .home-cta .awakening-button {
+      margin-top: 0;
+    }
+
+    .bottom-nav {
+      position: fixed;
+      left: 50%;
+      bottom: 0;
+      transform: translateX(-50%);
+      z-index: 50;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      width: min(100%, 480px);
+      padding: calc(8px + env(safe-area-inset-bottom)) 12px env(safe-area-inset-bottom) 12px;
+      background: rgba(10, 13, 13, 0.96);
+      border-top: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.2);
+    }
+
+    .nav-button {
+      min-height: 48px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--muted);
+      font: inherit;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+    }
+
+    .nav-button + .nav-button {
+      margin-left: 8px;
+    }
+
+    .nav-button.active {
+      border-color: var(--accent);
+      background: rgba(185, 239, 113, 0.08);
+      color: var(--accent);
+    }
+
+    .nav-button:focus-visible {
+      outline: 2px solid var(--orange);
+      outline-offset: 2px;
     }
 
     .system-label {
@@ -1042,6 +1132,18 @@
 
     <button id="awakening-button" class="awakening-button" type="button">ПОЧАТИ ПРОБУДЖЕННЯ</button>
   </main>
+
+  <div id="app-shell" class="app-shell" aria-live="polite">
+    <section id="home-screen" class="screen active" data-screen="home"></section>
+    <section id="quests-screen" class="screen" data-screen="quests"></section>
+    <section id="character-screen-app" class="screen" data-screen="character"></section>
+  </div>
+
+  <nav id="bottom-nav" class="bottom-nav" aria-label="Нижня навігація" hidden>
+    <button class="nav-button active" type="button" data-screen="home">Головна</button>
+    <button class="nav-button" type="button" data-screen="quests">Квести</button>
+    <button class="nav-button" type="button" data-screen="character">Персонаж</button>
+  </nav>
   <script>
     const characterStorageKey = "life-game-character";
     const gameStorageKey = "life-game-state";
@@ -1196,6 +1298,81 @@
       { id: "pool-training-30", title: "30 хвилин тренування", category: "Фізичний розвиток", difficulty: "hard", minLevel: 5, xpReward: 40 },
       { id: "pool-hard-challenge", title: "Складний виклик дня", category: "Особистий розвиток", difficulty: "veryHard", minLevel: 8, xpReward: 70 }
     ];
+
+    function moveContentIntoScreens() {
+      const appShell = document.getElementById("app-shell");
+      const homeScreen = document.getElementById("home-screen");
+      const questsScreen = document.getElementById("quests-screen");
+      const characterScreenApp = document.getElementById("character-screen-app");
+
+      if (!appShell || !homeScreen || !questsScreen || !characterScreenApp) return;
+
+      const heroCard = document.querySelector(".hero-card");
+      const progressSection = document.querySelector('section[aria-labelledby="character-progress-title"]');
+      if (heroCard && homeScreen) homeScreen.appendChild(heroCard);
+      if (progressSection && homeScreen) homeScreen.appendChild(progressSection);
+
+      const homeCta = document.createElement("section");
+      homeCta.className = "section";
+      homeCta.innerHTML = `
+        <p class="section-label">Актуальний шлях</p>
+        <div class="home-cta">
+          <h2>Почни рух</h2>
+          <p>Проведи один крок вперед і відкрий повний список квестів для наступного рівня.</p>
+          <button class="awakening-button" type="button" data-nav-screen="quests">ПЕРЕЙТИ ДО КВЕСТІВ</button>
+        </div>
+      `;
+      homeCta.querySelector('[data-nav-screen="quests"]').addEventListener("click", () => activateScreen("quests"));
+      homeScreen.appendChild(homeCta);
+
+      const questSections = [
+        'section[aria-labelledby="day-quest-title"]',
+        'section[aria-labelledby="daily-pool-title"]',
+        'section[aria-labelledby="social-life-title"]',
+        'section[aria-labelledby="social-progress-title"]',
+        'section[aria-labelledby="series-title"]',
+        'section[aria-labelledby="long-term-title"]',
+        'section[aria-labelledby="progress-title"]',
+        'section[aria-label="Серія"]'
+      ];
+
+      questSections.forEach((selector) => {
+        const section = document.querySelector(selector);
+        if (section && questsScreen) questsScreen.appendChild(section);
+      });
+
+      const characterSections = [
+        'section[aria-labelledby="stats-title"]',
+        'section[aria-labelledby="achievements-title"]',
+        'section[aria-labelledby="today-title"]'
+      ];
+
+      characterSections.forEach((selector) => {
+        const section = document.querySelector(selector);
+        if (section && characterScreenApp) characterScreenApp.appendChild(section);
+      });
+
+      appShell.classList.add("ready");
+    }
+
+    function activateScreen(screenName) {
+      const appShell = document.getElementById("app-shell");
+      const screenButtons = [...document.querySelectorAll(".nav-button")];
+      const screens = [...document.querySelectorAll(".screen")];
+
+      if (!appShell || !screenButtons.length || !screens.length) return;
+      if (gameState.awakening.status !== "completed") return;
+
+      screens.forEach((screen) => screen.classList.toggle("active", screen.dataset.screen === screenName));
+      screenButtons.forEach((button) => button.classList.toggle("active", button.dataset.screen === screenName));
+    }
+
+    function setupNavigation() {
+      const navButtons = [...document.querySelectorAll(".nav-button")];
+      navButtons.forEach((button) => {
+        button.addEventListener("click", () => activateScreen(button.dataset.screen));
+      });
+    }
 
     function isQuestAvailable(quest, playerLevel) {
       const minLevel = Number(quest.minLevel || 1);
@@ -1405,7 +1582,10 @@
     function showGame(character) {
       heroName.textContent = character.name;
       characterScreen.hidden = true;
-      document.querySelector("main").hidden = false;
+      const mainApp = document.querySelector("main");
+      const appShell = document.getElementById("app-shell");
+      mainApp.hidden = gameState.awakening.status === "completed";
+      if (appShell) appShell.style.display = gameState.awakening.status === "completed" ? "block" : "none";
       updateGameStateView();
     }
 
@@ -1543,12 +1723,21 @@
 
     function updateAwakeningAccess() {
       const awakeningStarted = gameState.awakening.status !== "completed";
+      const appShell = document.getElementById("app-shell");
+      const nav = document.getElementById("bottom-nav");
+      const mainApp = document.querySelector("main");
+      const isReady = gameState.awakening.status === "completed";
+
       document.querySelectorAll(".actions .action-button").forEach((button) => {
         button.disabled = awakeningStarted;
         button.setAttribute("aria-disabled", String(awakeningStarted));
       });
       awakeningButton.hidden = gameState.awakening.status !== "not-started";
       awakeningContent.hidden = gameState.awakening.status !== "in-progress";
+      if (mainApp) mainApp.hidden = isReady;
+      if (appShell) appShell.style.display = isReady ? "block" : "none";
+      if (nav) nav.hidden = !isReady;
+      if (isReady) activateScreen("home");
       updateStrengthCalibrationView();
       updateAwakeningFinalScreen();
     }
@@ -2085,6 +2274,8 @@
       quest.querySelector(".long-term-add").addEventListener("click", () => addLongTermProgress(quest));
     });
 
+    moveContentIntoScreens();
+    setupNavigation();
     completeDayIfReady();
     updateGameStateView();
   </script>
