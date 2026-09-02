@@ -109,6 +109,42 @@
       text-transform: uppercase;
     }
 
+    .recommended-quest-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .recommended-quest {
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      background: rgba(17, 24, 23, .78);
+    }
+
+    .recommended-quest h3 {
+      margin: 0 0 6px;
+      color: var(--accent);
+      font-size: 16px;
+    }
+
+    .recommended-quest p {
+      margin: 0 0 8px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.5;
+    }
+
+    .recommended-quest-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      color: var(--text);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+
     .home-cta {
       padding: 18px 16px;
       border: 1px solid var(--line);
@@ -1193,6 +1229,7 @@
       }
     };
     const language = "uk";
+    const recommendedQuestLimit = 3;
 
     const questTypeDefinitions = {
       repetitions: "repetitions",
@@ -1448,39 +1485,219 @@
         .filter(Boolean);
     }
 
-    function renderQuestLibraryPreview() {
+    function normalizeQuestSelectionState(selection) {
+      const safeSelection = selection && typeof selection === "object" ? selection : {};
+      const recentSelections = Array.isArray(safeSelection.recentSelections) ? safeSelection.recentSelections : [];
+      return {
+        dateKey: typeof safeSelection.dateKey === "string" ? safeSelection.dateKey : null,
+        selectedQuestIds: Array.isArray(safeSelection.selectedQuestIds)
+          ? safeSelection.selectedQuestIds.filter((questId) => typeof questId === "string")
+          : [],
+        recentSelections: recentSelections.filter((entry) => entry && typeof entry === "object" && typeof entry.id === "string" && typeof entry.selectedAt === "string")
+      };
+    }
+
+    function getTodayKey() {
+      const now = new Date();
+      return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    }
+
+    function getDifficultyOrderValue(difficulty) {
+      return { easy: 1, medium: 2, hard: 3, veryHard: 4 }[difficulty] || 1;
+    }
+
+    function getCharacteristicValue(characteristicName) {
+      if (!characteristicName || !gameState.characteristics[characteristicName]) return null;
+      const characteristic = gameState.characteristics[characteristicName];
+      return Number.isFinite(characteristic.current) ? characteristic.current : null;
+    }
+
+    function matchesBaseRequirements(quest) {
+      const requirements = quest.requirements || {};
+      const characteristicValue = getCharacteristicValue(quest.characteristicImpact);
+
+      if (typeof requirements.minimumCharacteristic === "number" && characteristicValue !== null && characteristicValue < requirements.minimumCharacteristic) {
+        return false;
+      }
+      if (typeof requirements.maximumCharacteristic === "number" && characteristicValue !== null && characteristicValue > requirements.maximumCharacteristic) {
+        return false;
+      }
+      if (typeof requirements.minimumAvailableTime === "number" && requirements.minimumAvailableTime > 0 && requirements.minimumAvailableTime > 180) {
+        return false;
+      }
+
+      return true;
+    }
+
+    function isQuestInCooldown(quest, recentSelections) {
+      if (!quest.cooldown || !Number.isFinite(Number(quest.cooldown.amount))) return false;
+      const cooldownDays = Number(quest.cooldown.amount) || 0;
+      if (cooldownDays <= 0) return false;
+      const cooldownMs = cooldownDays * 24 * 60 * 60 * 1000;
+      return recentSelections.some((selection) => {
+        if (selection.id !== quest.id) return false;
+        const selectedTime = new Date(selection.selectedAt).getTime();
+        return Number.isFinite(selectedTime) && Date.now() - selectedTime < cooldownMs;
+      });
+    }
+
+    function scoreQuestForRecommendation(quest, selectedIds, recentSelections) {
+      let score = 0;
+      const characteristicValue = getCharacteristicValue(quest.characteristicImpact);
+
+      if (selectedIds.includes(quest.id)) {
+        score += 1000;
+      }
+      if (isQuestInCooldown(quest, recentSelections)) {
+        score += 2000;
+      }
+      if (quest.characteristicImpact && characteristicValue !== null) {
+        const desiredDifficulty = characteristicValue <= 2 ? "easy" : (characteristicValue <= 4 ? "medium" : (characteristicValue <= 6 ? "hard" : "veryHard"));
+        const difference = Math.abs(getDifficultyOrderValue(quest.difficulty) - getDifficultyOrderValue(desiredDifficulty));
+        score += difference * 80;
+      }
+      if (selectedIds.length) {
+        selectedIds.forEach((selectedId) => {
+          const selectedQuest = getQuestLibrary().find((candidate) => candidate.id === selectedId);
+          if (!selectedQuest) return;
+          if (selectedQuest.characteristicImpact && quest.characteristicImpact && selectedQuest.characteristicImpact === quest.characteristicImpact) {
+            score += 60;
+          }
+          if (selectedQuest.questType && selectedQuest.questType === quest.questType) {
+            score += 45;
+          }
+        });
+      }
+
+      return score;
+    }
+
+    function generateRuleBasedQuestSelection() {
+      const library = getQuestLibrary();
+      const selectionState = normalizeQuestSelectionState(gameState.questSelection);
+      const selectedIds = [...selectionState.selectedQuestIds];
+      const recentSelections = [...selectionState.recentSelections];
+      const completedQuestIds = Array.isArray(gameState.completedQuests) ? gameState.completedQuests : [];
+      const candidates = library.filter((quest) => {
+        if (!quest.active) return false;
+        if (selectedIds.includes(quest.id)) return false;
+        if (quest.repeatable === false && completedQuestIds.includes(quest.id)) return false;
+        if (isQuestInCooldown(quest, recentSelections)) return false;
+        if (!matchesBaseRequirements(quest)) return false;
+        return true;
+      });
+
+      const prioritized = candidates
+        .map((quest) => ({ quest, score: scoreQuestForRecommendation(quest, selectedIds, recentSelections) }))
+        .sort((first, second) => first.score - second.score);
+
+      let chosen = prioritized.slice(0, recommendedQuestLimit).map((entry) => entry.quest.id);
+
+      if (!chosen.length) {
+        const fallback = library.filter((quest) => {
+          if (!quest.active) return false;
+          if (quest.repeatable === false && completedQuestIds.includes(quest.id)) return false;
+          if (isQuestInCooldown(quest, recentSelections)) return false;
+          return matchesBaseRequirements(quest);
+        });
+        chosen = fallback.slice(0, recommendedQuestLimit).map((quest) => quest.id);
+      }
+
+      const uniqueChosen = [];
+      const seenCharacteristics = new Set();
+      const seenTypes = new Set();
+      chosen.forEach((questId) => {
+        const quest = library.find((candidate) => candidate.id === questId);
+        if (!quest) return;
+        if (seenCharacteristics.size < 3 && quest.characteristicImpact && seenCharacteristics.has(quest.characteristicImpact)) return;
+        if (seenTypes.size < 3 && quest.questType && seenTypes.has(quest.questType)) return;
+        if (quest.characteristicImpact) seenCharacteristics.add(quest.characteristicImpact);
+        if (quest.questType) seenTypes.add(quest.questType);
+        uniqueChosen.push(questId);
+      });
+
+      return uniqueChosen.slice(0, recommendedQuestLimit);
+    }
+
+    function syncRecommendedQuestSelection() {
+      const selectionState = normalizeQuestSelectionState(gameState.questSelection);
+      const todayKey = getTodayKey();
+      if (selectionState.dateKey === todayKey && Array.isArray(selectionState.selectedQuestIds) && selectionState.selectedQuestIds.length) {
+        return selectionState.selectedQuestIds;
+      }
+
+      const freshSelection = generateRuleBasedQuestSelection();
+      gameState.questSelection = {
+        dateKey: todayKey,
+        selectedQuestIds: freshSelection,
+        recentSelections: selectionState.recentSelections.filter((entry) => Date.now() - new Date(entry.selectedAt).getTime() < 14 * 24 * 60 * 60 * 1000)
+      };
+      saveGameState();
+      return freshSelection;
+    }
+
+    function getSelectedRecommendedQuestIds() {
+      const selectionState = normalizeQuestSelectionState(gameState.questSelection);
+      const todayKey = getTodayKey();
+      if (selectionState.dateKey !== todayKey) {
+        return syncRecommendedQuestSelection();
+      }
+      return selectionState.selectedQuestIds.slice(0, recommendedQuestLimit);
+    }
+
+    function renderRecommendedQuests() {
       const questsScreen = document.getElementById("quests-screen");
       if (!questsScreen) return;
 
-      const existingPreview = document.getElementById("quest-library-preview");
-      if (existingPreview) existingPreview.remove();
+      const existingSection = document.getElementById("recommended-quests-section");
+      if (existingSection) existingSection.remove();
 
-      const previewSection = document.createElement("section");
-      previewSection.className = "section";
-      previewSection.id = "quest-library-preview";
-      previewSection.innerHTML = `
-        <p class="section-label">Бібліотека квестів</p>
-        <div class="library-preview"></div>
+      const ids = getSelectedRecommendedQuestIds();
+      const recommendationSection = document.createElement("section");
+      recommendationSection.className = "section";
+      recommendationSection.id = "recommended-quests-section";
+      recommendationSection.innerHTML = `
+        <p class="section-label">Рекомендовані квести</p>
+        <div class="recommended-quest-list"></div>
       `;
 
-      const previewList = previewSection.querySelector(".library-preview");
-      getQuestLibrary().forEach((quest) => {
-        const card = document.createElement("article");
-        card.className = "library-item";
-        card.innerHTML = `
+      const list = recommendationSection.querySelector(".recommended-quest-list");
+      if (!ids.length) {
+        const empty = document.createElement("div");
+        empty.className = "recommended-quest";
+        empty.innerHTML = "<p>Немає доступних рекомендованих квестів на цей день.</p>";
+        list.appendChild(empty);
+        questsScreen.appendChild(recommendationSection);
+        return;
+      }
+
+      ids.forEach((questId) => {
+        const quest = getQuestLibrary().find((candidate) => candidate.id === questId);
+        if (!quest) return;
+
+        const item = document.createElement("article");
+        item.className = "recommended-quest";
+        const parameterSummary = [];
+        if (quest.parameters?.reps) parameterSummary.push(`Повторень: ${quest.parameters.reps}`);
+        if (quest.parameters?.durationSeconds) parameterSummary.push(`Тривалість: ${quest.parameters.durationSeconds}с`);
+        if (quest.parameters?.targetDistance) parameterSummary.push(`Дистанція: ${quest.parameters.targetDistance}${quest.parameters.distanceUnit || ""}`);
+        if (quest.parameters?.minValue && quest.parameters?.maxValue) parameterSummary.push(`Діапазон: ${quest.parameters.minValue}–${quest.parameters.maxValue}`);
+
+        item.innerHTML = `
           <h3>${quest.title}</h3>
           <p>${quest.description}</p>
-          <div class="library-meta">
+          <div class="recommended-quest-meta">
+            <span>${quest.difficulty}</span>
             <span>${quest.questType}</span>
             <span>${quest.characteristicImpact || "neutral"}</span>
-            <span>${quest.difficulty}</span>
             <span>+${quest.xpReward} XP</span>
           </div>
+          ${parameterSummary.length ? `<p>${parameterSummary.join(" · ")}</p>` : ""}
         `;
-        previewList.appendChild(card);
+        list.appendChild(item);
       });
 
-      questsScreen.appendChild(previewSection);
+      questsScreen.appendChild(recommendationSection);
     }
 
     const characteristicProgressThreshold = 10;
@@ -1584,8 +1801,13 @@
         charisma: { current: null, starting: null, calibration: null, progress: 0 },
         practicality: { current: null, starting: null, calibration: null, progress: 0 }
       },
-        characteristicDevelopmentHistory: [],
-        characteristicProgressQuestIds: [],
+      questSelection: {
+        dateKey: null,
+        selectedQuestIds: [],
+        recentSelections: []
+      },
+      characteristicDevelopmentHistory: [],
+      characteristicProgressQuestIds: [],
       skills: {},
       achievements: {},
       questPreferences: {},
@@ -1667,7 +1889,7 @@
         if (section && questsScreen) questsScreen.appendChild(section);
       });
 
-      renderQuestLibraryPreview();
+      renderRecommendedQuests();
 
       const characterSections = [
         'section[aria-labelledby="stats-title"]',
@@ -1771,6 +1993,7 @@
         characteristics: Object.values(savedCharacteristics).some((value) => value && typeof value === "object")
           ? savedCharacteristics
           : baseState.characteristics,
+        questSelection: normalizeQuestSelectionState(safeState.questSelection || safeState.ruleBasedQuestSelection),
         characteristicDevelopmentHistory: Array.isArray(safeState.characteristicDevelopmentHistory)
           ? safeState.characteristicDevelopmentHistory
           : [],
