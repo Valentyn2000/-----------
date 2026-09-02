@@ -65,6 +65,8 @@
 
     .app-shell {
       max-width: 100%;
+      padding-bottom: calc(128px + env(safe-area-inset-bottom));
+      scroll-padding-bottom: calc(128px + env(safe-area-inset-bottom));
     }
       display: none;
     }
@@ -76,6 +78,12 @@
     .screen {
       display: none;
       width: 100%;
+      padding-bottom: calc(48px + env(safe-area-inset-bottom));
+      scroll-padding-bottom: calc(128px + env(safe-area-inset-bottom));
+    }
+
+    .quest-detail-panel {
+      scroll-margin-bottom: calc(128px + env(safe-area-inset-bottom));
     }
 
     .screen.active {
@@ -905,6 +913,13 @@
         <div class="character-progress-item"><span class="character-progress-name">Завершені серії</span><strong class="character-progress-value" id="character-progress-series">0</strong></div>
         <div class="character-progress-item"><span class="character-progress-name">Довгострокові квести</span><strong class="character-progress-value" id="character-progress-long-term">Немає прогресу</strong></div>
       </div>
+    </section>
+
+    <section id="daily-cycle-section" class="section" aria-labelledby="daily-cycle-title">
+      <p class="section-label" id="daily-cycle-title">СЬОГОДНІ</p>
+      <p id="daily-cycle-progress">Виконано 0 / 0 квестів</p>
+      <p id="daily-cycle-status" class="system-message" hidden></p>
+      <button id="complete-day-button" class="complete-button" type="button" hidden>ЗАВЕРШИТИ ДЕНЬ</button>
     </section>
 
     <section class="section" aria-labelledby="day-quest-title">
@@ -1841,6 +1856,9 @@
           { oldQuestId: questId, newQuestId: replacementQuest.id, timestamp: new Date().toISOString() }
         ].slice(-50)
       };
+      if (gameState.dailyState?.dateKey === getTodayKey()) {
+        gameState.dailyState.generatedQuestIds = [...updatedSelectedQuestIds];
+      }
       saveGameState();
       renderRecommendedQuests();
       return { success: true, replacementId: replacementQuest.id, message: "Квест успішно замінено." };
@@ -1886,6 +1904,7 @@
       completeDayIfReady();
       saveGameState();
       updateGameStateView();
+      updateDailyCycleView();
       return true;
     }
 
@@ -2220,6 +2239,13 @@
       seriesProgress: {},
       streak: 0,
       completedDays: [],
+      dailyState: {
+        dateKey: null,
+        status: "active",
+        completedAt: null,
+        generatedQuestIds: []
+      },
+      dailyHistory: [],
       level: 1,
       unlockNoticesShown: [],
       longTermQuestProgress: {},
@@ -2340,6 +2366,8 @@
       const progressSection = document.querySelector('section[aria-labelledby="character-progress-title"]');
       if (heroCard && homeScreen) homeScreen.appendChild(heroCard);
       if (progressSection && homeScreen) homeScreen.appendChild(progressSection);
+      const dailyCycleSection = document.getElementById("daily-cycle-section");
+      if (dailyCycleSection && homeScreen) homeScreen.appendChild(dailyCycleSection);
 
       if (!isPhysicalAlphaEnabled()) {
         const homeCta = document.createElement("section");
@@ -2379,7 +2407,9 @@
         });
       }
 
+      ensureDailyCycle();
       renderRecommendedQuests();
+      updateDailyCycleView();
 
       const characterSections = [
         'section[aria-labelledby="stats-title"]',
@@ -2405,7 +2435,76 @@
         if (activitySection) characterScreenApp.appendChild(activitySection);
       }
 
+      document.getElementById("complete-day-button")?.addEventListener("click", () => {
+        if (completeDailyCycle()) {
+          const status = document.getElementById("daily-cycle-status");
+          if (status) status.textContent = "ДЕНЬ ЗАВЕРШЕНО";
+        }
+      });
+
       appShell.classList.add("ready");
+    }
+
+    function getDailyQuestIds() {
+      const selectedIds = Array.isArray(gameState.questSelection?.selectedQuestIds) ? gameState.questSelection.selectedQuestIds : [];
+      return selectedIds.filter((questId) => {
+        const quest = getQuestLibrary().find((candidate) => candidate.id === questId);
+        return quest && (!isPhysicalAlphaEnabled() || isQuestAllowedInPhysicalAlpha(quest));
+      });
+    }
+
+    function ensureDailyCycle() {
+      if (gameState.awakening.status !== "completed") return [];
+      const todayKey = getTodayKey();
+      const dailyState = gameState.dailyState;
+      if (dailyState.dateKey !== todayKey) {
+        const selectedIds = syncRecommendedQuestSelection();
+        gameState.dailyState = { dateKey: todayKey, status: "active", completedAt: null, generatedQuestIds: [...selectedIds] };
+        saveGameState();
+        return selectedIds;
+      }
+      if (!dailyState.generatedQuestIds.length) {
+        dailyState.generatedQuestIds = getDailyQuestIds();
+        saveGameState();
+      }
+      return dailyState.generatedQuestIds;
+    }
+
+    function updateDailyCycleView() {
+      const progress = document.getElementById("daily-cycle-progress");
+      const status = document.getElementById("daily-cycle-status");
+      const completeButton = document.getElementById("complete-day-button");
+      if (!progress || !status || !completeButton || gameState.awakening.status !== "completed") return;
+      const questIds = ensureDailyCycle();
+      const completedCount = questIds.filter((questId) => gameState.completedQuests.includes(questId)).length;
+      const totalCount = questIds.length;
+      progress.textContent = `Виконано ${completedCount} / ${totalCount} квестів`;
+      const isComplete = gameState.dailyState.status === "completed";
+      status.hidden = !isComplete;
+      status.textContent = isComplete ? "Сьогоднішній шлях завершено." : "";
+      completeButton.hidden = isComplete || completedCount !== totalCount || totalCount === 0;
+      completeButton.disabled = isComplete || completedCount !== totalCount || totalCount === 0;
+    }
+
+    function completeDailyCycle() {
+      const questIds = ensureDailyCycle();
+      const completedCount = questIds.filter((questId) => gameState.completedQuests.includes(questId)).length;
+      if (!questIds.length || completedCount !== questIds.length || gameState.dailyState.status === "completed") return false;
+      const todayKey = getTodayKey();
+      if (gameState.dailyState.dateKey !== todayKey) return false;
+      gameState.dailyState.status = "completed";
+      gameState.dailyState.completedAt = new Date().toISOString();
+      if (!Array.isArray(gameState.dailyHistory)) gameState.dailyHistory = [];
+      if (!gameState.dailyHistory.some((entry) => entry.dateKey === todayKey)) {
+        gameState.dailyHistory.push({ dateKey: todayKey, completedQuestIds: [...questIds], totalQuestCount: questIds.length, completedAt: gameState.dailyState.completedAt });
+      }
+      if (!gameState.completedDays.includes(todayKey)) {
+        gameState.completedDays.push(todayKey);
+        gameState.streak += 1;
+      }
+      saveGameState();
+      updateDailyCycleView();
+      return true;
     }
 
     function activateScreen(screenName) {
@@ -2515,6 +2614,13 @@
           : [],
         completedQuests: Array.isArray(safeState.completedQuests) ? safeState.completedQuests : [],
         completedDays: Array.isArray(safeState.completedDays) ? safeState.completedDays : [],
+        dailyState: {
+          dateKey: typeof safeState.dailyState?.dateKey === "string" ? safeState.dailyState.dateKey : null,
+          status: safeState.dailyState?.status === "completed" ? "completed" : "active",
+          completedAt: typeof safeState.dailyState?.completedAt === "string" ? safeState.dailyState.completedAt : null,
+          generatedQuestIds: Array.isArray(safeState.dailyState?.generatedQuestIds) ? safeState.dailyState.generatedQuestIds.filter((id) => typeof id === "string") : []
+        },
+        dailyHistory: Array.isArray(safeState.dailyHistory) ? safeState.dailyHistory : [],
         unlockNoticesShown: Array.isArray(safeState.unlockNoticesShown) ? safeState.unlockNoticesShown : [],
         awakening: {
           status: awakeningStatus,
@@ -3003,7 +3109,6 @@
       if (mainApp) mainApp.hidden = isReady;
       if (appShell) appShell.style.display = isReady ? "block" : "none";
       if (nav) nav.hidden = !isReady;
-      if (isReady) activateScreen("home");
       updateStrengthCalibrationView();
       updateAwakeningFinalScreen();
     }
@@ -3334,6 +3439,7 @@
       updateSeriesView();
       updateLongTermQuestView();
       updatePhysicalActivityView();
+      updateDailyCycleView();
     }
 
     function getSeriesState(seriesId) {
@@ -3536,6 +3642,7 @@
     }
 
     function completeDayIfReady() {
+      if (isPhysicalAlphaEnabled()) return;
       const dayQuestIds = [...document.querySelectorAll(".day-quest")].map((quest) => quest.dataset.questId);
       const allDayQuestsCompleted = dayQuestIds.every((questId) => gameState.completedQuests.includes(questId));
       const completionDate = new Date().toISOString().slice(0, 10);
@@ -3566,6 +3673,10 @@
       gameState.awakening.completedAt = new Date().toISOString();
       saveGameState();
       updateAwakeningAccess();
+      ensureDailyCycle();
+      renderRecommendedQuests();
+      updateDailyCycleView();
+      activateScreen("home");
     });
 
     document.querySelector("#calibration-complete").addEventListener("click", startStrengthCalibrationAttempt);
