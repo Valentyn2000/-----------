@@ -20,6 +20,12 @@
 
     * { box-sizing: border-box; }
 
+    html, body {
+      width: 100%;
+      max-width: 100%;
+      overflow-x: hidden;
+    }
+
     body {
       margin: 0;
       min-width: 320px;
@@ -48,6 +54,7 @@
     main {
       position: relative;
       width: min(100%, 480px);
+      max-width: 100%;
       min-height: 100vh;
       margin: 0 auto;
       padding: 28px 20px calc(96px + env(safe-area-inset-bottom));
@@ -57,6 +64,8 @@
     }
 
     .app-shell {
+      max-width: 100%;
+    }
       display: none;
     }
 
@@ -177,6 +186,7 @@
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
       width: min(100%, 480px);
+      max-width: 100%;
       padding: calc(8px + env(safe-area-inset-bottom)) 12px env(safe-area-inset-bottom) 12px;
       background: rgba(10, 13, 13, 0.96);
       border-top: 1px solid var(--line);
@@ -1265,6 +1275,7 @@
       quests: [
         {
           id: "library-squats-12",
+          exerciseId: "squats",
           title: "12 присідань",
           description: "Плавно виконай 12 присідань без ривків.",
           category: "Фізичний розвиток",
@@ -1283,6 +1294,7 @@
         },
         {
           id: "library-plank-20s",
+          exerciseId: "plank",
           title: "Планка 20 секунд",
           description: "Утримай стабільне положення планки 20 секунд.",
           category: "Витривалість",
@@ -1461,6 +1473,7 @@
 
       return {
         id: String(rawQuest.id || "untitled-quest"),
+        exerciseId: typeof rawQuest.exerciseId === "string" ? rawQuest.exerciseId : undefined,
         title: String(rawQuest.title || "Без назви"),
         description: String(rawQuest.description || ""),
         category: String(rawQuest.category || "General"),
@@ -1661,6 +1674,7 @@
       const candidates = library.filter((quest) => {
         if (!quest.active) return false;
         if (selectedIds.includes(quest.id)) return false;
+        if (isPhysicalAlphaEnabled() && !isQuestAllowedInPhysicalAlpha(quest)) return false;
         if (quest.repeatable === false && completedQuestIds.includes(quest.id)) return false;
         if (isQuestInCooldown(quest, recentSelections)) return false;
         if (!matchesBaseRequirements(quest, playerContext)) return false;
@@ -1702,8 +1716,14 @@
     function syncRecommendedQuestSelection() {
       const selectionState = normalizeQuestSelectionState(gameState.questSelection);
       const todayKey = getTodayKey();
-      if (selectionState.dateKey === todayKey && Array.isArray(selectionState.selectedQuestIds) && selectionState.selectedQuestIds.length) {
-        return selectionState.selectedQuestIds;
+      const physicalFilter = (questId) => {
+        const quest = getQuestLibrary().find((candidate) => candidate.id === questId);
+        return !isPhysicalAlphaEnabled() || (quest && isQuestAllowedInPhysicalAlpha(quest));
+      };
+      const selectedIds = Array.isArray(selectionState.selectedQuestIds) ? selectionState.selectedQuestIds : [];
+      const hasValidSelection = selectedIds.length > 0 && selectedIds.every(physicalFilter);
+      if (selectionState.dateKey === todayKey && hasValidSelection) {
+        return selectedIds;
       }
 
       const freshSelection = generateRuleBasedQuestSelection();
@@ -1721,10 +1741,18 @@
     function getSelectedRecommendedQuestIds() {
       const selectionState = normalizeQuestSelectionState(gameState.questSelection);
       const todayKey = getTodayKey();
+      const physicalFilter = (questId) => {
+        const quest = getQuestLibrary().find((candidate) => candidate.id === questId);
+        return !isPhysicalAlphaEnabled() || (quest && isQuestAllowedInPhysicalAlpha(quest));
+      };
       if (selectionState.dateKey !== todayKey) {
         return syncRecommendedQuestSelection();
       }
-      return selectionState.selectedQuestIds.slice(0, recommendedQuestLimit);
+      const validSelection = selectionState.selectedQuestIds.filter(physicalFilter).slice(0, recommendedQuestLimit);
+      if (validSelection.length !== selectionState.selectedQuestIds.length) {
+        return syncRecommendedQuestSelection();
+      }
+      return validSelection;
     }
 
     function renderPlayerContextControls() {
@@ -1779,6 +1807,7 @@
       const candidatePool = getQuestLibrary().filter((candidate) => {
         if (!candidate.active) return false;
         if (candidate.id === questId) return false;
+        if (isPhysicalAlphaEnabled() && !isQuestAllowedInPhysicalAlpha(candidate)) return false;
         if (selectionState.selectedQuestIds.includes(candidate.id)) return false;
         if (candidate.repeatable === false && gameState.completedQuests.includes(candidate.id)) return false;
         if (isQuestInCooldown(candidate, selectionState.recentSelections)) return false;
@@ -1817,6 +1846,42 @@
       return { success: true, replacementId: replacementQuest.id, message: "Квест успішно замінено." };
     }
 
+    function completePhysicalQuestFromCard(questId) {
+      const quest = getQuestLibrary().find((candidate) => candidate.id === questId);
+      if (!quest || gameState.completedQuests.includes(questId)) return false;
+
+      gameState.experience += Number(quest.xpReward || 0);
+      gameState.completedQuests.push(questId);
+      gameState.completedQuestCount += 1;
+
+      if (quest.characteristicImpact && gameState.characteristics[quest.characteristicImpact]) {
+        const characteristicState = gameState.characteristics[quest.characteristicImpact];
+        const reward = Number(quest.characteristicProgressReward || 0);
+        if (Number.isFinite(characteristicState.current) && reward > 0) {
+          characteristicState.progress = Number(characteristicState.progress || 0) + reward;
+          while (characteristicState.progress >= characteristicProgressThreshold) {
+            const previousValue = characteristicState.current;
+            characteristicState.progress -= characteristicProgressThreshold;
+            characteristicState.current += 1;
+            gameState.characteristicDevelopmentHistory.push({
+              characteristic: quest.characteristicImpact,
+              previousValue,
+              newValue: characteristicState.current,
+              source: "quest-development",
+              questId,
+              timestamp: new Date().toISOString()
+            });
+          }
+        }
+      }
+
+      recordPhysicalActivityFromQuest(quest, questId);
+      completeDayIfReady();
+      saveGameState();
+      updateGameStateView();
+      return true;
+    }
+
     function renderRecommendedQuests() {
       const questsScreen = document.getElementById("quests-screen");
       if (!questsScreen) return;
@@ -1826,7 +1891,10 @@
 
       renderPlayerContextControls();
 
-      const ids = getSelectedRecommendedQuestIds();
+      const ids = getSelectedRecommendedQuestIds().filter((questId) => {
+        const quest = getQuestLibrary().find((candidate) => candidate.id === questId);
+        return !isPhysicalAlphaEnabled() || (quest && isQuestAllowedInPhysicalAlpha(quest));
+      });
       const recommendationSection = document.createElement("section");
       recommendationSection.className = "section";
       recommendationSection.id = "recommended-quests-section";
@@ -1851,26 +1919,51 @@
 
         const item = document.createElement("article");
         item.className = "recommended-quest";
+        item.dataset.questId = quest.id;
+        item.dataset.exerciseId = quest.exerciseId || "";
+        item.dataset.characteristicImpact = quest.characteristicImpact || "";
         const parameterSummary = [];
-        if (quest.parameters?.reps) parameterSummary.push(`Повторень: ${quest.parameters.reps}`);
-        if (quest.parameters?.durationSeconds) parameterSummary.push(`Тривалість: ${quest.parameters.durationSeconds}с`);
+        if (quest.parameters?.reps) parameterSummary.push(`Вправа: ${quest.parameters.reps} повторень`);
+        if (quest.parameters?.durationSeconds) parameterSummary.push(`Вправа: ${quest.parameters.durationSeconds}с планки`);
         if (quest.parameters?.targetDistance) parameterSummary.push(`Дистанція: ${quest.parameters.targetDistance}${quest.parameters.distanceUnit || ""}`);
         if (quest.parameters?.minValue && quest.parameters?.maxValue) parameterSummary.push(`Діапазон: ${quest.parameters.minValue}–${quest.parameters.maxValue}`);
+
+        const isCompleted = gameState.completedQuests.includes(quest.id);
+        const objectiveText = quest.parameters?.reps
+          ? `${quest.parameters.reps} ${quest.title.toLowerCase().includes("віджим") ? "віджимань" : "повторень"}`
+          : (quest.parameters?.durationSeconds ? `${quest.title} ${quest.parameters.durationSeconds} секунд` : quest.title);
 
         item.innerHTML = `
           <h3>${quest.title}</h3>
           <p>${quest.description}</p>
           <div class="recommended-quest-meta">
             <span>${quest.difficulty}</span>
-            <span>${quest.questType}</span>
-            <span>${quest.characteristicImpact || "neutral"}</span>
+            <span>${quest.characteristicImpact || "physical"}</span>
             <span>+${quest.xpReward} XP</span>
           </div>
+          <p><strong>Ціль:</strong> ${objectiveText}</p>
           ${parameterSummary.length ? `<p>${parameterSummary.join(" · ")}</p>` : ""}
-          <button class="complete-button replace-quest-button" type="button" data-replace-quest-id="${quest.id}" style="margin-top: 12px;">ЗАМІНИТИ</button>
+          <div class="quest-detail-actions" style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:12px;">
+            <button class="complete-button quest-start-button" type="button" data-quest-id="${quest.id}" ${isCompleted ? "disabled" : ""}>${isCompleted ? "ВИКОНАНО" : "ПОЧАТИ"}</button>
+            <button class="complete-button replace-quest-button" type="button" data-replace-quest-id="${quest.id}" style="margin-top:0;">ЗАМІНИТИ</button>
+          </div>
         `;
 
-        item.querySelector(".replace-quest-button").addEventListener("click", () => {
+        item.querySelector(".quest-start-button").addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          if (gameState.completedQuests.includes(quest.id)) return;
+          const result = completePhysicalQuestFromCard(quest.id);
+          if (result) {
+            const button = event.currentTarget;
+            button.textContent = "ВИКОНАНО";
+            button.disabled = true;
+          }
+        });
+
+        item.querySelector(".replace-quest-button").addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
           const result = replaceQuestInSelection(questId);
           if (!result.success) {
             const message = document.createElement("p");
@@ -1878,6 +1971,46 @@
             message.textContent = result.message;
             item.appendChild(message);
           }
+        });
+
+        item.addEventListener("click", (event) => {
+          if (event.target.closest("button")) return;
+          const panel = document.getElementById(`quest-detail-panel-${quest.id}`);
+          if (panel) {
+            panel.remove();
+            return;
+          }
+          const detail = document.createElement("div");
+          detail.id = `quest-detail-panel-${quest.id}`;
+          detail.className = "quest-detail-panel";
+          detail.style.marginTop = "12px";
+          detail.style.padding = "12px";
+          detail.style.border = "1px solid var(--line)";
+          detail.style.background = "rgba(17, 24, 23, .78)";
+          const detailTarget = quest.parameters?.reps ? `${quest.parameters.reps} віджимань` : (quest.parameters?.durationSeconds ? `Планка ${quest.parameters.durationSeconds} секунд` : quest.title);
+          const secondaryButtonText = gameState.completedQuests.includes(quest.id) ? "ВИКОНАНО" : "ПОЧАТИ";
+          detail.innerHTML = `
+            <h4>${quest.title}</h4>
+            <p>${quest.description}</p>
+            <p><strong>Вправа:</strong> ${quest.exerciseId || "Фізичне навантаження"}</p>
+            <p><strong>Ціль:</strong> ${detailTarget}</p>
+            <p><strong>Нагорода:</strong> +${quest.xpReward} XP</p>
+            <button class="complete-button quest-detail-button" type="button" data-quest-id="${quest.id}" ${gameState.completedQuests.includes(quest.id) ? "disabled" : ""}>${secondaryButtonText}</button>
+          `;
+          detail.querySelector(".quest-detail-button").addEventListener("click", (buttonEvent) => {
+            buttonEvent.preventDefault();
+            buttonEvent.stopPropagation();
+            if (!completePhysicalQuestFromCard(quest.id)) return;
+            const btn = buttonEvent.currentTarget;
+            btn.textContent = "ВИКОНАНО";
+            btn.disabled = true;
+            const startButton = item.querySelector(".quest-start-button");
+            if (startButton) {
+              startButton.textContent = "ВИКОНАНО";
+              startButton.disabled = true;
+            }
+          });
+          item.appendChild(detail);
         });
 
         list.appendChild(item);
@@ -1888,6 +2021,40 @@
 
     const characteristicProgressThreshold = 10;
     const characteristicProgressRewards = { easy: 2, medium: 3, hard: 4, veryHard: 5 };
+    const physicalAlphaCharacteristics = ["strength", "endurance"];
+    const fullCharacteristicSet = ["strength", "endurance", "intelligence", "charisma", "practicality"];
+    const physicalExerciseDefinitions = {
+      pushups: { id: "pushups", title: "Віджимання", metric: "repetitions", unit: "repetitions", maxValue: 500 },
+      squats: { id: "squats", title: "Присідання", metric: "repetitions", unit: "repetitions", maxValue: 500 },
+      plank: { id: "plank", title: "Планка", metric: "durationSeconds", unit: "seconds", maxValue: 7200 }
+    };
+
+    function getActiveAlphaCharacteristics() {
+      return [...physicalAlphaCharacteristics];
+    }
+
+    function isPhysicalAlphaEnabled() {
+      return true;
+    }
+
+    function isPhysicalAlphaCharacteristic(characteristic) {
+      return getActiveAlphaCharacteristics().includes(characteristic);
+    }
+
+    function getVisibleCharacteristicsForUi() {
+      return isPhysicalAlphaEnabled() ? getActiveAlphaCharacteristics() : [...fullCharacteristicSet];
+    }
+
+    function isQuestAllowedInPhysicalAlpha(quest) {
+      if (!quest || typeof quest !== "object") return false;
+      if (!isPhysicalAlphaEnabled()) return true;
+      return quest.characteristicImpact === "strength" || quest.characteristicImpact === "endurance";
+    }
+
+    function getActiveAwakeningStages() {
+      return isPhysicalAlphaEnabled() ? ["squats", "pushups", "plank"] : Object.keys(awakeningStageDefinitions);
+    }
+
     const awakeningCalibrationDefinitions = {
       squats: { characteristic: "strength", title: "Сила", name: "Присідання", type: "count", levels: [5, 10, 15, 20, 30] },
       pushups: { characteristic: "strength", title: "Сила", name: "Віджимання", type: "count", levels: [3, 5, 10, 15, 20] },
@@ -1936,6 +2103,7 @@
       completedQuests: [],
       completedQuestCount: 0,
       completedSocialQuestCount: 0,
+      physicalActivityHistory: [],
       seriesProgress: {},
       streak: 0,
       completedDays: [],
@@ -2060,18 +2228,20 @@
       if (heroCard && homeScreen) homeScreen.appendChild(heroCard);
       if (progressSection && homeScreen) homeScreen.appendChild(progressSection);
 
-      const homeCta = document.createElement("section");
-      homeCta.className = "section";
-      homeCta.innerHTML = `
-        <p class="section-label">Актуальний шлях</p>
-        <div class="home-cta">
-          <h2>Почни рух</h2>
-          <p>Проведи один крок вперед і відкрий повний список квестів для наступного рівня.</p>
-          <button class="awakening-button" type="button" data-nav-screen="quests">ПЕРЕЙТИ ДО КВЕСТІВ</button>
-        </div>
-      `;
-      homeCta.querySelector('[data-nav-screen="quests"]').addEventListener("click", () => activateScreen("quests"));
-      homeScreen.appendChild(homeCta);
+      if (!isPhysicalAlphaEnabled()) {
+        const homeCta = document.createElement("section");
+        homeCta.className = "section";
+        homeCta.innerHTML = `
+          <p class="section-label">Актуальний шлях</p>
+          <div class="home-cta">
+            <h2>Почни рух</h2>
+            <p>Проведи один крок вперед і відкрий повний список квестів для наступного рівня.</p>
+            <button class="awakening-button" type="button" data-nav-screen="quests">ПЕРЕЙТИ ДО КВЕСТІВ</button>
+          </div>
+        `;
+        homeCta.querySelector('[data-nav-screen="quests"]').addEventListener("click", () => activateScreen("quests"));
+        homeScreen.appendChild(homeCta);
+      }
 
       const questSections = [
         'section[aria-labelledby="day-quest-title"]',
@@ -2084,10 +2254,17 @@
         'section[aria-label="Серія"]'
       ];
 
-      questSections.forEach((selector) => {
-        const section = document.querySelector(selector);
-        if (section && questsScreen) questsScreen.appendChild(section);
-      });
+      if (!isPhysicalAlphaEnabled()) {
+        questSections.forEach((selector) => {
+          const section = document.querySelector(selector);
+          if (section && questsScreen) questsScreen.appendChild(section);
+        });
+      } else {
+        questSections.forEach((selector) => {
+          const section = document.querySelector(selector);
+          if (section) section.hidden = true;
+        });
+      }
 
       renderRecommendedQuests();
 
@@ -2101,6 +2278,19 @@
         const section = document.querySelector(selector);
         if (section && characterScreenApp) characterScreenApp.appendChild(section);
       });
+
+      document.querySelectorAll(".action-button").forEach((button) => {
+        const buttonText = button.textContent.trim();
+        if (["Квести", "Характеристики", "Навички"].includes(buttonText) && isPhysicalAlphaEnabled()) {
+          button.hidden = true;
+          button.style.display = "none";
+        }
+      });
+
+      if (characterScreenApp && !document.getElementById("physical-activity-section")) {
+        const activitySection = createPhysicalActivitySection();
+        if (activitySection) characterScreenApp.appendChild(activitySection);
+      }
 
       appShell.classList.add("ready");
     }
@@ -2180,9 +2370,12 @@
         ? savedAwakening.calibration.currentExercise
         : (strengthCalibration.completed ? "pushups" : "squats");
       const savedCurrentStage = savedAwakening.calibration?.currentStage;
-      const currentStage = savedAwakening.calibration?.physicalCompleted && ["squats", "pushups", "plank"].includes(savedCurrentStage)
-        ? "intelligenceLogic"
-        : (savedCurrentStage || (savedAwakening.calibration?.physicalCompleted ? "intelligenceLogic" : currentExercise));
+      const physicalStages = ["squats", "pushups", "plank"];
+      const currentStage = isPhysicalAlphaEnabled()
+        ? (savedCurrentStage && physicalStages.includes(savedCurrentStage) ? savedCurrentStage : (savedAwakening.calibration?.physicalCompleted ? "plank" : currentExercise))
+        : (savedAwakening.calibration?.physicalCompleted && physicalStages.includes(savedCurrentStage)
+          ? "intelligenceLogic"
+          : (savedCurrentStage || (savedAwakening.calibration?.physicalCompleted ? "intelligenceLogic" : currentExercise)));
       const stageStates = Object.fromEntries(Object.keys(awakeningStageDefinitions).map((stageId) => [stageId, normalizeCalibration(savedAwakening.calibration?.stages?.[stageId])]));
       const normalizedState = {
         ...baseState,
@@ -2190,6 +2383,7 @@
         schemaVersion: gameStateSchemaVersion,
         profile: { ...baseState.profile, ...savedProfile },
         stats: { ...baseState.stats, ...(safeState.stats || {}) },
+        physicalActivityHistory: normalizePhysicalActivityHistory(safeState.physicalActivityHistory || baseState.physicalActivityHistory),
         characteristics: Object.values(savedCharacteristics).some((value) => value && typeof value === "object")
           ? savedCharacteristics
           : baseState.characteristics,
@@ -2435,8 +2629,14 @@
     }
 
     function updateCharacteristicsView() {
+      const visibleCharacteristics = getVisibleCharacteristicsForUi();
       document.querySelectorAll("[data-characteristic]").forEach((item) => {
-        const state = gameState.characteristics[item.dataset.characteristic];
+        const key = item.dataset.characteristic;
+        const isVisible = visibleCharacteristics.includes(key);
+        item.hidden = !isVisible;
+        if (!isVisible) return;
+
+        const state = gameState.characteristics[key];
         const value = item.querySelector(".stat-value");
         const progress = item.querySelector(".stat-progress");
         const fill = item.querySelector(".stat-fill");
@@ -2450,6 +2650,197 @@
         progress.textContent = `Прогрес: ${state.progress} / ${characteristicProgressThreshold}`;
         fill.style.width = `${Math.min(100, (state.progress / characteristicProgressThreshold) * 100)}%`;
       });
+    }
+
+    function getLocalDateKey(date = new Date()) {
+      const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
+      return localDate.toISOString().slice(0, 10);
+    }
+
+    function formatPhysicalDuration(totalSeconds) {
+      const safeSeconds = Math.max(0, Math.floor(Number(totalSeconds) || 0));
+      const minutes = Math.floor(safeSeconds / 60);
+      const remainderSeconds = safeSeconds % 60;
+      const hours = Math.floor(minutes / 60);
+      const minutesPart = minutes % 60;
+      if (hours > 0) return `${hours} г ${minutesPart} хв ${remainderSeconds} с`;
+      if (minutes > 0) return `${minutes} хв ${remainderSeconds} с`;
+      return `${remainderSeconds} с`;
+    }
+
+    function getPhysicalExerciseDefinition(exerciseId) {
+      return physicalExerciseDefinitions[exerciseId] || null;
+    }
+
+    function getSafePhysicalActivityValue(exerciseId, rawValue) {
+      const definition = getPhysicalExerciseDefinition(exerciseId);
+      if (!definition) return null;
+      const value = Number(rawValue);
+      if (!Number.isFinite(value) || !Number.isInteger(value) || value <= 0) return null;
+      if (value > (definition.maxValue || Number.MAX_SAFE_INTEGER)) return null;
+      return value;
+    }
+
+    function normalizePhysicalActivityEntry(entry) {
+      if (!entry || typeof entry !== "object") return null;
+      const exerciseId = typeof entry.exerciseId === "string" && getPhysicalExerciseDefinition(entry.exerciseId) ? entry.exerciseId : null;
+      if (!exerciseId) return null;
+      const source = entry.source === "quest" || entry.source === "manual" ? entry.source : null;
+      if (!source) return null;
+      const value = getSafePhysicalActivityValue(exerciseId, entry.value);
+      if (value === null) return null;
+      const unit = entry.unit === getPhysicalExerciseDefinition(exerciseId).unit ? entry.unit : getPhysicalExerciseDefinition(exerciseId).unit;
+      const questId = typeof entry.questId === "string" && entry.questId.trim() ? entry.questId : null;
+      return {
+        exerciseId,
+        value,
+        unit,
+        source,
+        questId,
+        timestamp: typeof entry.timestamp === "string" && entry.timestamp ? entry.timestamp : new Date().toISOString()
+      };
+    }
+
+    function normalizePhysicalActivityHistory(entries) {
+      if (!Array.isArray(entries)) return [];
+      return entries
+        .map((entry) => normalizePhysicalActivityEntry(entry))
+        .filter(Boolean);
+    }
+
+    function getFilteredPhysicalActivityEntries(days) {
+      if (!Array.isArray(gameState.physicalActivityHistory)) return [];
+      const periodDays = Number(days);
+      const normalizedDays = Number.isFinite(periodDays) && periodDays > 0 ? periodDays : 1;
+      const endDate = new Date();
+      endDate.setHours(23, 59, 59, 999);
+      const startDate = new Date(endDate);
+      startDate.setDate(endDate.getDate() - (normalizedDays - 1));
+      startDate.setHours(0, 0, 0, 0);
+
+      return gameState.physicalActivityHistory.filter((entry) => {
+        if (!entry || typeof entry !== "object") return false;
+        const date = new Date(entry.timestamp);
+        if (Number.isNaN(date.getTime())) return false;
+        return date >= startDate && date <= endDate;
+      });
+    }
+
+    function getPhysicalActivityTotals(days) {
+      const totals = { pushups: 0, squats: 0, plank: 0 };
+      const entries = getFilteredPhysicalActivityEntries(days);
+      entries.forEach((entry) => {
+        if (!entry || !getPhysicalExerciseDefinition(entry.exerciseId)) return;
+        const allowed = ["pushups", "squats", "plank"];
+        if (!allowed.includes(entry.exerciseId)) return;
+        totals[entry.exerciseId] += Number(entry.value) || 0;
+      });
+      return totals;
+    }
+
+    let physicalActivityPeriodState = { activePeriod: 0 };
+
+    function createPhysicalActivitySection() {
+      const section = document.createElement("section");
+      section.className = "section";
+      section.id = "physical-activity-section";
+      section.setAttribute("aria-labelledby", "physical-activity-title");
+      section.innerHTML = `
+        <p class="section-label" id="physical-activity-title">Фізична активність</p>
+        <div class="physical-activity-panel">
+          <div class="physical-activity-actions" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
+            <button class="physical-activity-period active" type="button" data-activity-period="0">СЬОГОДНІ</button>
+            <button class="physical-activity-period" type="button" data-activity-period="7">7 ДНІВ</button>
+            <button class="physical-activity-period" type="button" data-activity-period="30">30 ДНІВ</button>
+          </div>
+          <div class="physical-activity-summary" style="display:grid; gap:8px; margin-bottom:12px;">
+            <div class="stat"><div class="stat-copy"><span class="stat-name">Віджимання</span><p class="stat-progress">0 повторень</p></div><strong class="stat-value" data-activity-total="pushups">0</strong></div>
+            <div class="stat"><div class="stat-copy"><span class="stat-name">Присідання</span><p class="stat-progress">0 повторень</p></div><strong class="stat-value" data-activity-total="squats">0</strong></div>
+            <div class="stat"><div class="stat-copy"><span class="stat-name">Планка</span><p class="stat-progress">0 с</p></div><strong class="stat-value" data-activity-total="plank">0</strong></div>
+          </div>
+          <button id="add-physical-activity-button" class="complete-button" type="button" style="width:100%; margin-bottom:12px;">+ ДОДАТИ АКТИВНІСТЬ</button>
+          <form id="physical-activity-form" hidden style="display:grid; gap:8px; padding:12px; border:1px solid var(--line); background:rgba(17,24,23,.78);">
+            <label style="display:grid; gap:6px; font-size:11px; color:var(--muted);">
+              Вправа
+              <select id="physical-activity-exercise" style="min-height:38px; background:#0b100f; color:var(--text); border:1px solid var(--line); font:inherit;">
+                <option value="pushups">Віджимання</option>
+                <option value="squats">Присідання</option>
+                <option value="plank">Планка</option>
+              </select>
+            </label>
+            <label style="display:grid; gap:6px; font-size:11px; color:var(--muted);">
+              Результат
+              <input id="physical-activity-value" type="number" min="1" step="1" placeholder="Наприклад: 20" style="min-height:38px; padding:0 8px; background:#0b100f; color:var(--text); border:1px solid var(--line); font:inherit;" />
+            </label>
+            <div id="physical-activity-error" style="min-height:16px; font-size:10px; color:var(--orange);"></div>
+            <button class="complete-button" type="submit" style="width:100%;">ДОДАТИ</button>
+          </form>
+        </div>
+      `;
+
+      const sectionNode = section;
+      sectionNode.dataset.period = String(physicalActivityPeriodState.activePeriod || 0);
+      const addButton = sectionNode.querySelector("#add-physical-activity-button");
+      const form = sectionNode.querySelector("#physical-activity-form");
+      addButton.addEventListener("click", () => {
+        form.hidden = !form.hidden;
+      });
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const select = sectionNode.querySelector("#physical-activity-exercise");
+        const input = sectionNode.querySelector("#physical-activity-value");
+        const error = sectionNode.querySelector("#physical-activity-error");
+        const exerciseId = select.value;
+        const rawValue = input.value.trim();
+        const parsedValue = getSafePhysicalActivityValue(exerciseId, rawValue);
+        error.textContent = "";
+        if (parsedValue === null) {
+          error.textContent = "Введи валідне додатне число без 0, NaN чи занадто великого значення.";
+          return;
+        }
+        const definition = getPhysicalExerciseDefinition(exerciseId);
+        if (!definition || !recordPhysicalActivity({ exerciseId, value: parsedValue, source: "manual", questId: null })) {
+          error.textContent = "Не вдалося зберегти активність.";
+          return;
+        }
+        input.value = "";
+        form.hidden = true;
+        saveGameState();
+        updatePhysicalActivityView();
+      });
+
+      sectionNode.querySelectorAll(".physical-activity-period").forEach((button) => {
+        button.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          const period = Number(button.dataset.activityPeriod || 0);
+          sectionNode.dataset.period = String(period);
+          sectionNode.querySelectorAll(".physical-activity-period").forEach((item) => item.classList.toggle("active", item === button));
+          updatePhysicalActivityView();
+        });
+      });
+
+      return sectionNode;
+    }
+
+    function updatePhysicalActivityView() {
+      const section = document.getElementById("physical-activity-section");
+      if (!section) return;
+      const period = Number(section.dataset.period || physicalActivityPeriodState.activePeriod || 0);
+      physicalActivityPeriodState.activePeriod = period;
+      section.dataset.period = String(period);
+      const totals = getPhysicalActivityTotals(period === 0 ? 1 : period);
+      section.querySelector('[data-activity-total="pushups"]').textContent = totals.pushups;
+      section.querySelector('[data-activity-total="squats"]').textContent = totals.squats;
+      section.querySelector('[data-activity-total="plank"]').textContent = formatPhysicalDuration(totals.plank);
+      section.querySelectorAll(".physical-activity-period").forEach((button) => {
+        const periodValue = Number(button.dataset.activityPeriod || 0);
+        button.classList.toggle("active", periodValue === period);
+      });
+      const summaryCopy = section.querySelectorAll(".stat-progress");
+      summaryCopy[0].textContent = `${totals.pushups} повторень`;
+      summaryCopy[1].textContent = `${totals.squats} повторень`;
+      summaryCopy[2].textContent = `${formatPhysicalDuration(totals.plank)}`;
     }
 
     function updateCharacterProgressView() {
@@ -2509,9 +2900,22 @@
 
     function calculateAwakeningCharacteristics() {
       const calibration = gameState.awakening.calibration;
+      const strength = getMedianCalibrationLevel([getCalibrationLevel(calibration.strength), getCalibrationLevel(calibration.pushups)]);
+      const endurance = getCalibrationLevel(calibration.endurance.plank);
+
+      if (isPhysicalAlphaEnabled()) {
+        return {
+          strength,
+          endurance,
+          intelligence: null,
+          charisma: null,
+          practicality: null
+        };
+      }
+
       return {
-        strength: getMedianCalibrationLevel([getCalibrationLevel(calibration.strength), getCalibrationLevel(calibration.pushups)]),
-        endurance: getCalibrationLevel(calibration.endurance.plank),
+        strength,
+        endurance,
         intelligence: getMedianCalibrationLevel(Object.keys(awakeningStageDefinitions)
           .filter((stageId) => stageId.startsWith("intelligence"))
           .map((stageId) => getCalibrationLevel(calibration.stages[stageId]))),
@@ -2526,13 +2930,18 @@
     function finalizeAwakeningCalibration() {
       if (!gameState.awakening.calibration.basicCompleted) return;
       const calculated = calculateAwakeningCharacteristics();
-      if (Object.values(calculated).some((value) => !Number.isInteger(value))) return;
-      gameState.characteristics = Object.fromEntries(Object.entries(calculated).map(([name, value]) => [name, {
-        current: value,
-        starting: value,
-        calibration: value,
-        progress: 0
-      }]));
+      const targetSet = isPhysicalAlphaEnabled() ? ["strength", "endurance"] : [...fullCharacteristicSet];
+      const nextCharacteristics = { ...gameState.characteristics };
+      for (const name of targetSet) {
+        if (!Number.isInteger(calculated[name])) continue;
+        nextCharacteristics[name] = {
+          current: calculated[name],
+          starting: calculated[name],
+          calibration: calculated[name],
+          progress: 0
+        };
+      }
+      gameState.characteristics = nextCharacteristics;
       gameState.awakening.calibration.characteristicsCalculated = true;
       saveGameState();
     }
@@ -2544,7 +2953,9 @@
       document.querySelector("#awakening-final-screen").hidden = !isReady;
       if (!isReady) return;
       const characteristics = gameState.characteristics;
-      const labels = { strength: "Сила", endurance: "Витривалість", intelligence: "Інтелект", charisma: "Харизма", practicality: "Практичність" };
+      const labels = isPhysicalAlphaEnabled()
+        ? { strength: "Сила", endurance: "Витривалість" }
+        : { strength: "Сила", endurance: "Витривалість", intelligence: "Інтелект", charisma: "Харизма", practicality: "Практичність" };
       document.querySelector("#awakening-characteristics").innerHTML = Object.entries(labels).map(([name, label]) => `<div class="stat"><span class="stat-name">${label}</span><strong class="stat-value">${characteristics[name]?.starting ?? "—"}</strong></div>`).join("");
     }
 
@@ -2621,15 +3032,44 @@
         calibration.currentLevel = Math.max(1, calibration.currentLevel - 1);
       } else if (rating === "normal") {
         calibration.normalConfirmations += 1;
-        if (calibration.normalConfirmations >= 2) {
-          calibration.completed = true;
-          calibration.determinedLevel = attempt.difficultyLevel;
-          if (exerciseId === "squats") { calibrationState.currentExercise = "pushups"; calibrationState.currentStage = "pushups"; }
-          if (exerciseId === "pushups") { calibrationState.currentExercise = "plank"; calibrationState.currentStage = "plank"; }
-          if (exerciseId === "plank") { calibrationState.physicalCompleted = true; calibrationState.currentStage = "intelligenceLogic"; }
-          advanceBasicCalibration(calibrationState, exerciseId);
-          finalizeAwakeningCalibration();
+        calibration.completed = true;
+        calibration.determinedLevel = attempt.difficultyLevel;
+
+        if (exerciseId === "squats") {
+          calibrationState.currentExercise = "pushups";
+          calibrationState.currentStage = "pushups";
+          calibrationState.strength.normalConfirmations = 0;
+          calibrationState.strength.completed = false;
+          calibrationState.pushups.normalConfirmations = 0;
+          calibrationState.pushups.completed = false;
+          calibrationState.pushups.pendingAttempt = null;
         }
+        if (exerciseId === "pushups") {
+          calibrationState.currentExercise = "plank";
+          calibrationState.currentStage = "plank";
+          calibrationState.pushups.normalConfirmations = 0;
+          calibrationState.pushups.completed = false;
+          calibrationState.endurance.plank.normalConfirmations = 0;
+          calibrationState.endurance.plank.completed = false;
+          calibrationState.endurance.plank.pendingAttempt = null;
+        }
+        if (exerciseId === "plank") {
+          calibrationState.physicalCompleted = true;
+          calibrationState.currentExercise = "plank";
+          calibrationState.currentStage = "plank";
+          calibrationState.basicCompleted = true;
+          calibrationState.characteristicsCalculated = false;
+          calibrationState.endurance.plank.normalConfirmations = 0;
+          finalizeAwakeningCalibration();
+          saveGameState();
+          updateAwakeningFinalScreen();
+          return;
+        }
+
+        if (!isPhysicalAlphaEnabled()) {
+          advanceBasicCalibration(calibrationState, exerciseId);
+        }
+        finalizeAwakeningCalibration();
       }
 
       saveGameState();
@@ -2675,6 +3115,28 @@
         "discipline-week": gameState.streak >= 7,
         "first-series": completedSeriesCount >= 1
       };
+
+      const achievementList = document.querySelector(".achievement-list");
+      if (!achievementList) return;
+      const visibleAchievements = [...document.querySelectorAll("[data-achievement-id]")].filter((achievement) => {
+        const isCompleted = achievementStates[achievement.dataset.achievementId] === true;
+        achievement.classList.toggle("completed", isCompleted);
+        achievement.querySelector(".achievement-status").textContent = isCompleted ? "ВИКОНАНО" : "ЗАБЛОКОВАНО";
+        return isCompleted || !isPhysicalAlphaEnabled();
+      });
+
+      if (isPhysicalAlphaEnabled()) {
+        achievementList.innerHTML = "";
+        if (visibleAchievements.length) {
+          visibleAchievements.forEach((achievement) => achievementList.appendChild(achievement));
+        } else {
+          const emptyState = document.createElement("p");
+          emptyState.className = "achievement-empty";
+          emptyState.textContent = "Поки що немає отриманих досягнень.";
+          achievementList.appendChild(emptyState);
+        }
+        return;
+      }
 
       document.querySelectorAll("[data-achievement-id]").forEach((achievement) => {
         const isCompleted = achievementStates[achievement.dataset.achievementId] === true;
@@ -2726,6 +3188,17 @@
 
     function updateGameStateView() {
       document.querySelector(".today-date").textContent = `ДЕНЬ ${String(gameState.day).padStart(2, "0")}`;
+      const actionSection = document.querySelector('section[aria-labelledby="today-title"]');
+      const isAlphaCharacterUi = isPhysicalAlphaEnabled();
+      if (actionSection) actionSection.hidden = isAlphaCharacterUi;
+      document.querySelectorAll(".action-button").forEach((button) => {
+        const buttonText = button.textContent.trim();
+        const isAlphaExtraButton = ["Квести", "Характеристики", "Навички"].includes(buttonText);
+        button.hidden = isAlphaCharacterUi && isAlphaExtraButton;
+        if (isAlphaCharacterUi && isAlphaExtraButton) {
+          button.style.display = "none";
+        }
+      });
       updateLevel();
       updateProgressView();
       updateCharacterProgressView();
@@ -2736,6 +3209,7 @@
       updateQuestAvailability();
       updateSeriesView();
       updateLongTermQuestView();
+      updatePhysicalActivityView();
     }
 
     function getSeriesState(seriesId) {
@@ -2976,6 +3450,62 @@
       option.addEventListener("click", () => submitStrengthCalibrationRating(option.dataset.rating));
     });
 
+    function recordPhysicalActivityFromQuest(quest, questId) {
+      if (!quest || !questId) return false;
+      let exerciseId = quest?.dataset?.exerciseId || quest?.exerciseId || quest?.tracking?.exerciseId || null;
+      let questDefinition = getQuestLibrary().find((candidate) => candidate.id === questId) || null;
+      if (!exerciseId && questDefinition) {
+        exerciseId = questDefinition.exerciseId || null;
+      }
+      if (!exerciseId || !getPhysicalExerciseDefinition(exerciseId)) return false;
+      const parameters = questDefinition?.parameters || {};
+      let value = null;
+      if (exerciseId === "plank") {
+        value = Number(parameters.durationSeconds);
+      } else {
+        value = Number(parameters.reps);
+      }
+      if (!Number.isFinite(value) || value <= 0) return false;
+      const safeValue = getSafePhysicalActivityValue(exerciseId, value);
+      if (safeValue === null) return false;
+      const duplicate = Array.isArray(gameState.physicalActivityHistory)
+        && gameState.physicalActivityHistory.some((entry) => entry.source === "quest" && entry.questId === questId);
+      if (duplicate) return false;
+      return recordPhysicalActivity({
+        exerciseId,
+        value: safeValue,
+        unit: getPhysicalExerciseDefinition(exerciseId).unit,
+        source: "quest",
+        questId,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    function recordPhysicalActivity({ exerciseId, value, source, questId = null, timestamp = new Date().toISOString() }) {
+      const definition = getPhysicalExerciseDefinition(exerciseId);
+      if (!definition) return false;
+      const safeValue = getSafePhysicalActivityValue(exerciseId, value);
+      if (safeValue === null) return false;
+      if (source !== "manual" && source !== "quest") return false;
+      if (!Array.isArray(gameState.physicalActivityHistory)) {
+        gameState.physicalActivityHistory = [];
+      }
+      if (source === "quest" && typeof questId === "string" && questId.trim()) {
+        const duplicate = gameState.physicalActivityHistory.some((entry) => entry.source === "quest" && entry.questId === questId);
+        if (duplicate) return false;
+      }
+      const entry = {
+        exerciseId,
+        value: safeValue,
+        unit: definition.unit,
+        source,
+        questId: typeof questId === "string" && questId.trim() ? questId : null,
+        timestamp
+      };
+      gameState.physicalActivityHistory.push(entry);
+      return true;
+    }
+
     document.querySelectorAll("[data-quest-id]").forEach((quest) => {
       const questId = quest.dataset.questId;
       const completeButton = quest.querySelector(".complete-button");
@@ -3001,6 +3531,7 @@
         }
         gameState.completedQuests.push(questId);
         gameState.completedQuestCount += 1;
+        recordPhysicalActivityFromQuest(quest, questId);
         addCharacteristicProgress(quest, questId);
         if (quest.dataset.socialQuest === "true") {
           gameState.completedSocialQuestCount += 1;
