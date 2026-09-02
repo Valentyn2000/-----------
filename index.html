@@ -1488,13 +1488,46 @@
     function normalizeQuestSelectionState(selection) {
       const safeSelection = selection && typeof selection === "object" ? selection : {};
       const recentSelections = Array.isArray(safeSelection.recentSelections) ? safeSelection.recentSelections : [];
+      const replacementHistory = Array.isArray(safeSelection.replacementHistory) ? safeSelection.replacementHistory : [];
       return {
         dateKey: typeof safeSelection.dateKey === "string" ? safeSelection.dateKey : null,
         selectedQuestIds: Array.isArray(safeSelection.selectedQuestIds)
           ? safeSelection.selectedQuestIds.filter((questId) => typeof questId === "string")
           : [],
-        recentSelections: recentSelections.filter((entry) => entry && typeof entry === "object" && typeof entry.id === "string" && typeof entry.selectedAt === "string")
+        recentSelections: recentSelections.filter((entry) => entry && typeof entry === "object" && typeof entry.id === "string" && typeof entry.selectedAt === "string"),
+        replacementHistory: replacementHistory.filter((entry) => entry && typeof entry === "object" && typeof entry.oldQuestId === "string" && typeof entry.newQuestId === "string" && typeof entry.timestamp === "string")
       };
+    }
+
+    function normalizePlayerContext(playerContext) {
+      const safeContext = playerContext && typeof playerContext === "object" ? playerContext : {};
+      const normalizeList = (value) => {
+        if (!Array.isArray(value)) return [];
+        return [...new Set(value
+          .filter((item) => typeof item === "string" || typeof item === "number")
+          .map((item) => String(item).trim().toLowerCase())
+          .filter(Boolean))];
+      };
+      const availableTimeMinutes = Number(safeContext.availableTimeMinutes);
+      const pausedCharacteristics = {
+        strength: safeContext.pausedCharacteristics?.strength === true,
+        endurance: safeContext.pausedCharacteristics?.endurance === true,
+        intelligence: safeContext.pausedCharacteristics?.intelligence === true,
+        charisma: safeContext.pausedCharacteristics?.charisma === true,
+        practicality: safeContext.pausedCharacteristics?.practicality === true
+      };
+
+      return {
+        availableTimeMinutes: Number.isFinite(availableTimeMinutes) && availableTimeMinutes >= 0 ? availableTimeMinutes : null,
+        availableEquipment: normalizeList(safeContext.availableEquipment),
+        availableContexts: normalizeList(safeContext.availableContexts),
+        unavailableContexts: normalizeList(safeContext.unavailableContexts),
+        pausedCharacteristics
+      };
+    }
+
+    function getPlayerContext() {
+      return normalizePlayerContext(gameState?.playerContext);
     }
 
     function getTodayKey() {
@@ -1512,7 +1545,7 @@
       return Number.isFinite(characteristic.current) ? characteristic.current : null;
     }
 
-    function matchesBaseRequirements(quest) {
+    function matchesBaseRequirements(quest, playerContext = getPlayerContext()) {
       const requirements = quest.requirements || {};
       const characteristicValue = getCharacteristicValue(quest.characteristicImpact);
 
@@ -1522,7 +1555,53 @@
       if (typeof requirements.maximumCharacteristic === "number" && characteristicValue !== null && characteristicValue > requirements.maximumCharacteristic) {
         return false;
       }
-      if (typeof requirements.minimumAvailableTime === "number" && requirements.minimumAvailableTime > 0 && requirements.minimumAvailableTime > 180) {
+      const minimumAvailableTime = Number(requirements.minimumAvailableTime);
+      if (Number.isFinite(minimumAvailableTime) && minimumAvailableTime > 0 && Number.isFinite(playerContext.availableTimeMinutes) && minimumAvailableTime > playerContext.availableTimeMinutes) {
+        return false;
+      }
+
+      const requiredEquipment = Array.isArray(requirements.requiredEquipment)
+        ? requirements.requiredEquipment
+        : (requirements.requiredEquipment ? [requirements.requiredEquipment] : []);
+      if (requiredEquipment.length) {
+        const availableEquipment = new Set(playerContext.availableEquipment);
+        const missingEquipment = requiredEquipment.some((item) => {
+          const normalizedItem = String(item).trim().toLowerCase();
+          return normalizedItem && !availableEquipment.has(normalizedItem);
+        });
+        if (missingEquipment) return false;
+      }
+
+      const requiredContexts = Array.isArray(requirements.requiredContext)
+        ? requirements.requiredContext
+        : (requirements.requiredContext ? [requirements.requiredContext] : []);
+      if (requiredContexts.length) {
+        const availableContexts = new Set(playerContext.availableContexts);
+        const missingContext = requiredContexts.some((item) => {
+          const normalizedItem = String(item).trim().toLowerCase();
+          return normalizedItem && !availableContexts.has(normalizedItem);
+        });
+        if (missingContext) return false;
+      }
+
+      const unavailableContexts = Array.isArray(requirements.unavailableContexts)
+        ? requirements.unavailableContexts
+        : (requirements.unavailableContexts ? [requirements.unavailableContexts] : []);
+      if (unavailableContexts.length) {
+        const blockedContexts = new Set(playerContext.unavailableContexts);
+        const clash = unavailableContexts.some((item) => {
+          const normalizedItem = String(item).trim().toLowerCase();
+          return normalizedItem && blockedContexts.has(normalizedItem);
+        });
+        if (clash) return false;
+      }
+
+      const playerUnavailableContexts = new Set(playerContext.unavailableContexts);
+      if (quest.requirements?.requiredContext && playerUnavailableContexts.has(String(quest.requirements.requiredContext).trim().toLowerCase())) {
+        return false;
+      }
+
+      if (quest.characteristicImpact && playerContext.pausedCharacteristics[quest.characteristicImpact] === true) {
         return false;
       }
 
@@ -1578,12 +1657,13 @@
       const selectedIds = [...selectionState.selectedQuestIds];
       const recentSelections = [...selectionState.recentSelections];
       const completedQuestIds = Array.isArray(gameState.completedQuests) ? gameState.completedQuests : [];
+      const playerContext = getPlayerContext();
       const candidates = library.filter((quest) => {
         if (!quest.active) return false;
         if (selectedIds.includes(quest.id)) return false;
         if (quest.repeatable === false && completedQuestIds.includes(quest.id)) return false;
         if (isQuestInCooldown(quest, recentSelections)) return false;
-        if (!matchesBaseRequirements(quest)) return false;
+        if (!matchesBaseRequirements(quest, playerContext)) return false;
         return true;
       });
 
@@ -1598,7 +1678,7 @@
           if (!quest.active) return false;
           if (quest.repeatable === false && completedQuestIds.includes(quest.id)) return false;
           if (isQuestInCooldown(quest, recentSelections)) return false;
-          return matchesBaseRequirements(quest);
+          return matchesBaseRequirements(quest, playerContext);
         });
         chosen = fallback.slice(0, recommendedQuestLimit).map((quest) => quest.id);
       }
@@ -1628,9 +1708,11 @@
 
       const freshSelection = generateRuleBasedQuestSelection();
       gameState.questSelection = {
+        ...selectionState,
         dateKey: todayKey,
         selectedQuestIds: freshSelection,
-        recentSelections: selectionState.recentSelections.filter((entry) => Date.now() - new Date(entry.selectedAt).getTime() < 14 * 24 * 60 * 60 * 1000)
+        recentSelections: selectionState.recentSelections.filter((entry) => Date.now() - new Date(entry.selectedAt).getTime() < 14 * 24 * 60 * 60 * 1000),
+        replacementHistory: selectionState.replacementHistory || []
       };
       saveGameState();
       return freshSelection;
@@ -1645,12 +1727,104 @@
       return selectionState.selectedQuestIds.slice(0, recommendedQuestLimit);
     }
 
+    function renderPlayerContextControls() {
+      const questsScreen = document.getElementById("quests-screen");
+      if (!questsScreen) return;
+
+      const existing = document.getElementById("player-context-panel");
+      if (existing) existing.remove();
+
+      const contextPanel = document.createElement("section");
+      contextPanel.id = "player-context-panel";
+      contextPanel.className = "section";
+      const currentTime = Number(gameState?.playerContext?.availableTimeMinutes);
+      const options = [10, 20, 30, 60, null];
+      const optionLabels = { 10: "10 хв", 20: "20 хв", 30: "30 хв", 60: "60 хв", null: "Без обмеження" };
+
+      contextPanel.innerHTML = `
+        <p class="section-label">Базовий контекст</p>
+        <div class="recommended-quest">
+          <p class="social-quest-description" style="margin-bottom: 10px;">Доступний час на квести</p>
+          <div class="recommended-quest-meta" style="gap: 6px; margin-bottom: 0;">
+            ${options.map((option) => {
+              const isActive = option === null ? currentTime === null || !Number.isFinite(currentTime) : currentTime === option;
+              const value = option === null ? "" : String(option);
+              return `<button class="nav-button ${isActive ? "active" : ""}" type="button" data-context-time="${value}" style="min-height: 34px; padding: 0 10px; font-size: 10px; border-radius: 0;">${optionLabels[option]}</button>`;
+            }).join("")}
+          </div>
+        </div>
+      `;
+
+      contextPanel.querySelectorAll("[data-context-time]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const rawValue = button.dataset.contextTime;
+          const nextValue = rawValue === "" ? null : Number(rawValue);
+          gameState.playerContext = normalizePlayerContext({
+            ...gameState.playerContext,
+            availableTimeMinutes: nextValue
+          });
+          saveGameState();
+          renderRecommendedQuests();
+        });
+      });
+
+      questsScreen.appendChild(contextPanel);
+    }
+
+    function replaceQuestInSelection(questId) {
+      const selectionState = normalizeQuestSelectionState(gameState.questSelection);
+      const index = selectionState.selectedQuestIds.indexOf(questId);
+      if (index === -1) return { success: false, message: "Квест не знайдено в поточному наборі." };
+
+      const candidatePool = getQuestLibrary().filter((candidate) => {
+        if (!candidate.active) return false;
+        if (candidate.id === questId) return false;
+        if (selectionState.selectedQuestIds.includes(candidate.id)) return false;
+        if (candidate.repeatable === false && gameState.completedQuests.includes(candidate.id)) return false;
+        if (isQuestInCooldown(candidate, selectionState.recentSelections)) return false;
+        if (!matchesBaseRequirements(candidate, getPlayerContext())) return false;
+        const previousReplacement = selectionState.replacementHistory[selectionState.replacementHistory.length - 1];
+        if (previousReplacement && previousReplacement.newQuestId === candidate.id) return false;
+        return true;
+      });
+
+      const sortedCandidates = candidatePool
+        .map((candidate) => ({
+          candidate,
+          score: scoreQuestForRecommendation(candidate, selectionState.selectedQuestIds.filter((selectedId) => selectedId !== questId), selectionState.recentSelections)
+        }))
+        .sort((first, second) => first.score - second.score)
+        .map((entry) => entry.candidate);
+
+      const replacementQuest = sortedCandidates[0];
+      if (!replacementQuest) {
+        return { success: false, message: "Наразі немає іншого придатного варіанта." };
+      }
+
+      const updatedSelectedQuestIds = [...selectionState.selectedQuestIds];
+      updatedSelectedQuestIds.splice(index, 1, replacementQuest.id);
+
+      gameState.questSelection = {
+        ...selectionState,
+        selectedQuestIds: updatedSelectedQuestIds,
+        replacementHistory: [
+          ...selectionState.replacementHistory,
+          { oldQuestId: questId, newQuestId: replacementQuest.id, timestamp: new Date().toISOString() }
+        ].slice(-50)
+      };
+      saveGameState();
+      renderRecommendedQuests();
+      return { success: true, replacementId: replacementQuest.id, message: "Квест успішно замінено." };
+    }
+
     function renderRecommendedQuests() {
       const questsScreen = document.getElementById("quests-screen");
       if (!questsScreen) return;
 
       const existingSection = document.getElementById("recommended-quests-section");
       if (existingSection) existingSection.remove();
+
+      renderPlayerContextControls();
 
       const ids = getSelectedRecommendedQuestIds();
       const recommendationSection = document.createElement("section");
@@ -1693,7 +1867,19 @@
             <span>+${quest.xpReward} XP</span>
           </div>
           ${parameterSummary.length ? `<p>${parameterSummary.join(" · ")}</p>` : ""}
+          <button class="complete-button replace-quest-button" type="button" data-replace-quest-id="${quest.id}" style="margin-top: 12px;">ЗАМІНИТИ</button>
         `;
+
+        item.querySelector(".replace-quest-button").addEventListener("click", () => {
+          const result = replaceQuestInSelection(questId);
+          if (!result.success) {
+            const message = document.createElement("p");
+            message.className = "recommended-quest-meta";
+            message.textContent = result.message;
+            item.appendChild(message);
+          }
+        });
+
         list.appendChild(item);
       });
 
@@ -1801,10 +1987,24 @@
         charisma: { current: null, starting: null, calibration: null, progress: 0 },
         practicality: { current: null, starting: null, calibration: null, progress: 0 }
       },
+      playerContext: {
+        availableTimeMinutes: null,
+        availableEquipment: [],
+        availableContexts: [],
+        unavailableContexts: [],
+        pausedCharacteristics: {
+          strength: false,
+          endurance: false,
+          intelligence: false,
+          charisma: false,
+          practicality: false
+        }
+      },
       questSelection: {
         dateKey: null,
         selectedQuestIds: [],
-        recentSelections: []
+        recentSelections: [],
+        replacementHistory: []
       },
       characteristicDevelopmentHistory: [],
       characteristicProgressQuestIds: [],
@@ -1993,6 +2193,7 @@
         characteristics: Object.values(savedCharacteristics).some((value) => value && typeof value === "object")
           ? savedCharacteristics
           : baseState.characteristics,
+        playerContext: normalizePlayerContext(safeState.playerContext || baseState.playerContext),
         questSelection: normalizeQuestSelectionState(safeState.questSelection || safeState.ruleBasedQuestSelection),
         characteristicDevelopmentHistory: Array.isArray(safeState.characteristicDevelopmentHistory)
           ? safeState.characteristicDevelopmentHistory
