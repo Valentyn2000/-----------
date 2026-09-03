@@ -64,12 +64,11 @@
     }
 
     .app-shell {
-      max-width: 100%;
-      padding-bottom: calc(128px + env(safe-area-inset-bottom));
-      scroll-padding-bottom: calc(128px + env(safe-area-inset-bottom));
-    }
-      display: none;
-    }
+    max-width: 100%;
+    padding-bottom: calc(128px + env(safe-area-inset-bottom));
+    scroll-padding-bottom: calc(128px + env(safe-area-inset-bottom));
+    display: none;
+}
 
     .app-shell.ready {
       display: block;
@@ -1254,7 +1253,7 @@
       }
     };
     const language = "uk";
-    const recommendedQuestLimit = 3;
+    const recommendedQuestLimit = 4;
 
     const questTypeDefinitions = {
       repetitions: "repetitions",
@@ -1769,6 +1768,7 @@
       if (!chosen.length) {
         const fallback = library.filter((quest) => {
           if (!quest.active) return false;
+          if (isPhysicalAlphaEnabled() && !isQuestAllowedInPhysicalAlpha(quest)) return false;
           if (quest.repeatable === false && completedQuestIds.includes(quest.id)) return false;
           if (isQuestInCooldown(quest, recentSelections)) return false;
           return matchesBaseRequirements(quest, playerContext);
@@ -1782,8 +1782,8 @@
       chosen.forEach((questId) => {
         const quest = library.find((candidate) => candidate.id === questId);
         if (!quest) return;
-        if (seenCharacteristics.size < 3 && quest.characteristicImpact && seenCharacteristics.has(quest.characteristicImpact)) return;
-        if (seenTypes.size < 3 && quest.questType && seenTypes.has(quest.questType)) return;
+        //if (seenCharacteristics.size < 3 && quest.characteristicImpact && seenCharacteristics.has(quest.characteristicImpact)) return;
+        //if (seenTypes.size < 3 && quest.questType && seenTypes.has(quest.questType)) return;
         if (quest.characteristicImpact) seenCharacteristics.add(quest.characteristicImpact);
         if (quest.questType) seenTypes.add(quest.questType);
         uniqueChosen.push(questId);
@@ -1800,7 +1800,7 @@
         return !isPhysicalAlphaEnabled() || (quest && isQuestAllowedInPhysicalAlpha(quest));
       };
       const selectedIds = Array.isArray(selectionState.selectedQuestIds) ? selectionState.selectedQuestIds : [];
-      const hasValidSelection = selectedIds.length > 0 && selectedIds.every(physicalFilter);
+      const hasValidSelection = selectedIds.length === recommendedQuestLimit && selectedIds.every(physicalFilter);
       if (selectionState.dateKey === todayKey && hasValidSelection) {
         return selectedIds;
       }
@@ -1832,7 +1832,7 @@
         return syncRecommendedQuestSelection();
       }
       const validSelection = selectionState.selectedQuestIds.filter(physicalFilter).slice(0, recommendedQuestLimit);
-      if (validSelection.length !== selectionState.selectedQuestIds.length) {
+      if (validSelection.length !== recommendedQuestLimit || validSelection.length !== selectionState.selectedQuestIds.length) {
         return syncRecommendedQuestSelection();
       }
       return validSelection;
@@ -1933,11 +1933,14 @@
       return { success: true, replacementId: replacementQuest.id, message: "Квест успішно замінено." };
     }
 
-    let activeQuestTimer = null;
+    const activeQuestTimers = new Map();
+const questTimerStates = new Map();
 
-    function stopActiveQuestTimer() {
-      if (activeQuestTimer?.intervalId) clearInterval(activeQuestTimer.intervalId);
-      activeQuestTimer = null;
+ function stopActiveQuestTimer(questId) {
+    const timer = activeQuestTimers.get(questId);
+    if (timer?.intervalId) clearInterval(timer.intervalId);
+    activeQuestTimers.delete(questId);
+
     }
 
     function completePhysicalQuestFromCard(questId, completionResult = null) {
@@ -2022,76 +2025,110 @@
       const pauseButton = detail.querySelector(".quest-timer-pause");
       const finishButton = detail.querySelector(".quest-timer-finish");
       const restartButton = detail.querySelector(".quest-timer-restart");
-      let elapsedSeconds = 0;
-      let remainingSeconds = targetSeconds;
-      let startedAt = 0;
-      let completionHandled = false;
+      const existingTimer = activeQuestTimers.get(quest.id) || null;
+      const timerState = questTimerStates.get(quest.id) || existingTimer?.state || {
+        questId: quest.id,
+        elapsedSeconds: 0,
+        remainingSeconds: targetSeconds,
+        startedAt: 0,
+        running: false,
+        completed: false
+      };
+      questTimerStates.set(quest.id, timerState);
+      if (existingTimer) existingTimer.detail = detail;
 
       const renderTimer = () => {
-        timeDisplay.textContent = formatQuestTime(isDuration ? remainingSeconds : elapsedSeconds);
+        timeDisplay.textContent = formatQuestTime(isDuration ? timerState.remainingSeconds : timerState.elapsedSeconds);
       };
       const setButtons = (running, finished) => {
         startButton.hidden = running || finished;
+        startButton.textContent = timerState.elapsedSeconds > 0 || timerState.remainingSeconds < targetSeconds ? "ПРОДОВЖИТИ" : "ПОЧАТИ";
         pauseButton.hidden = !running;
-        finishButton.hidden = !running;
-        restartButton.hidden = !finished && !(!running && (elapsedSeconds > 0 || remainingSeconds < targetSeconds));
+        finishButton.hidden = isDuration ? finished || (!running && timerState.elapsedSeconds === 0) : !running;
+        restartButton.hidden = !finished && !(!running && (timerState.elapsedSeconds > 0 || timerState.remainingSeconds < targetSeconds));
       };
-      const currentElapsed = () => Math.max(0, Math.floor((Date.now() - startedAt) / 1000) + elapsedSeconds);
+      const currentElapsed = () => Math.max(0, Math.floor((Date.now() - timerState.startedAt) / 1000) + timerState.elapsedSeconds);
       const tick = () => {
-        if (!activeQuestTimer || activeQuestTimer.detail !== detail) return;
+       if (!activeQuestTimers.has(quest.id)) return;
         if (isDuration) {
-          remainingSeconds = Math.max(0, targetSeconds - currentElapsed());
-          renderTimer();
-          if (remainingSeconds === 0 && !completionHandled) {
-            completionHandled = true;
-            stopActiveQuestTimer();
+          const elapsed = currentElapsed();
+timerState.remainingSeconds = Math.max(0, targetSeconds - elapsed);
+renderTimer();
+          if (timerState.remainingSeconds === 0 && !timerState.completed) {
+            timerState.completed = true;
+            timerState.running = false;
+            stopActiveQuestTimer(quest.id);
             status.textContent = "КВЕСТ ВИКОНАНО";
             setButtons(false, true);
             completePhysicalQuestFromCard(quest.id, { exerciseId: quest.exerciseId, value: targetSeconds, unit: "seconds" });
-            showQuestFeedback(detail, quest);
+            if (detail.isConnected) showQuestFeedback(detail, quest);
           }
         } else {
-          timeDisplay.textContent = formatQuestTime(currentElapsed());
-        }
+  timeDisplay.textContent = formatQuestTime(currentElapsed());
+}
       };
       const start = () => {
-        if (completionHandled || activeQuestTimer?.detail === detail) return;
-        stopActiveQuestTimer();
-        startedAt = Date.now();
-        activeQuestTimer = { detail, intervalId: setInterval(tick, 250) };
+        if (timerState.completed || activeQuestTimers.has(quest.id)) return;
+        stopActiveQuestTimer(quest.id);
+        timerState.startedAt = Date.now();
+        timerState.running = true;
+        activeQuestTimers.set(quest.id, {
+    questId: quest.id,
+    state: timerState,
+    detail,
+    intervalId: setInterval(tick, 250)
+});
         status.textContent = "ВИКОНУЄТЬСЯ";
         setButtons(true, false);
         tick();
       };
       const pause = () => {
-        if (activeQuestTimer?.detail !== detail) return;
-        elapsedSeconds = isDuration ? targetSeconds - remainingSeconds : currentElapsed();
-        stopActiveQuestTimer();
+       if (!activeQuestTimers.has(quest.id) || !timerState.running) return;
+
+timerState.elapsedSeconds = currentElapsed();
+
+if (isDuration) {
+    timerState.remainingSeconds = Math.max(0, targetSeconds - timerState.elapsedSeconds);
+}
+
+timerState.running = false;
+stopActiveQuestTimer(quest.id);
         status.textContent = "ПАУЗА";
         setButtons(false, false);
         renderTimer();
       };
       const finish = () => {
-        if (completionHandled) return;
-        const wasRunning = activeQuestTimer?.detail === detail;
-        if (wasRunning) elapsedSeconds = isDuration ? targetSeconds - remainingSeconds : currentElapsed();
-        stopActiveQuestTimer();
+       if (timerState.completed) return;
+
+if (activeQuestTimers.has(quest.id) && timerState.running) {
+    timerState.elapsedSeconds = currentElapsed();
+
+    if (isDuration) {
+        timerState.remainingSeconds = Math.max(0, targetSeconds - timerState.elapsedSeconds);
+    }
+}
+
+timerState.running = false;
+stopActiveQuestTimer(quest.id);
         if (isDuration) {
           status.textContent = "Квест не завершено";
           setButtons(false, false);
           return;
         }
-        completionHandled = true;
+        timerState.completed = true;
         status.textContent = "КВЕСТ ВИКОНАНО";
         setButtons(false, true);
-        completePhysicalQuestFromCard(quest.id, { exerciseId: quest.exerciseId, value: elapsedSeconds, unit: "seconds" });
+        completePhysicalQuestFromCard(quest.id, { exerciseId: quest.exerciseId, value: timerState.elapsedSeconds, unit: "seconds" });
         showQuestFeedback(detail, quest);
         renderTimer();
       };
       const restart = () => {
-        completionHandled = false;
-        elapsedSeconds = 0;
-        remainingSeconds = targetSeconds;
+        stopActiveQuestTimer(quest.id);
+        timerState.completed = false;
+        timerState.running = false;
+        timerState.elapsedSeconds = 0;
+        timerState.remainingSeconds = targetSeconds;
+        timerState.startedAt = 0;
         status.textContent = "";
         renderTimer();
         setButtons(false, false);
@@ -2100,8 +2137,25 @@
       pauseButton.addEventListener("click", pause);
       finishButton.addEventListener("click", finish);
       restartButton.addEventListener("click", restart);
+      if (existingTimer && timerState.running) {
+    if (existingTimer.intervalId) clearInterval(existingTimer.intervalId);
+
+    activeQuestTimers.set(quest.id, {
+        questId: quest.id,
+        state: timerState,
+        detail,
+        intervalId: setInterval(tick, 250)
+    });
+}
       renderTimer();
-      setButtons(false, false);
+      if (timerState.completed || gameState.completedQuests.includes(quest.id)) {
+        status.textContent = "КВЕСТ ВИКОНАНО";
+        setButtons(false, true);
+        if (!quest.feedbackSubmitted) showQuestFeedback(detail, quest);
+      } else {
+        status.textContent = timerState.running ? "ВИКОНУЄТЬСЯ" : (timerState.elapsedSeconds > 0 ? "ПАУЗА" : "");
+        setButtons(timerState.running, false);
+      }
     }
 
     function renderRecommendedQuests() {
@@ -2146,7 +2200,7 @@
         item.dataset.characteristicImpact = quest.characteristicImpact || "";
         const parameterSummary = [];
         if (quest.parameters?.reps) parameterSummary.push(`Вправа: ${quest.parameters.reps} повторень`);
-        if (quest.parameters?.durationSeconds) parameterSummary.push(`Вправа: ${quest.parameters.durationSeconds}с планки`);
+        if (quest.parameters?.durationSeconds) parameterSummary.push(`Тривалість: ${formatQuestTime(quest.parameters.durationSeconds)}`);
         if (quest.parameters?.targetDistance) parameterSummary.push(`Дистанція: ${quest.parameters.targetDistance}${quest.parameters.distanceUnit || ""}`);
         if (quest.parameters?.minValue && quest.parameters?.maxValue) parameterSummary.push(`Діапазон: ${quest.parameters.minValue}–${quest.parameters.maxValue}`);
 
@@ -2194,8 +2248,15 @@
         item.querySelector(".replace-quest-button").addEventListener("click", (event) => {
           event.preventDefault();
           event.stopPropagation();
+          const selectionBeforeReplacement = structuredClone(gameState.questSelection);
+          const dailyStateBeforeReplacement = structuredClone(gameState.dailyState);
+          const completedQuestsBeforeReplacement = [...gameState.completedQuests];
           const result = replaceQuestInSelection(questId);
           if (!result.success) {
+            gameState.questSelection = selectionBeforeReplacement;
+            gameState.dailyState = dailyStateBeforeReplacement;
+            gameState.completedQuests = completedQuestsBeforeReplacement;
+            updateDailyCycleView();
             const message = document.createElement("p");
             message.className = "recommended-quest-meta";
             message.textContent = result.message;
@@ -2207,11 +2268,9 @@
           if (event.target.closest("button")) return;
           const panel = document.getElementById(`quest-detail-panel-${quest.id}`);
           if (panel) {
-            stopActiveQuestTimer();
-            panel.remove();
-            return;
-          }
-          stopActiveQuestTimer();
+    panel.remove();
+    return;
+}
           const detail = document.createElement("div");
           detail.id = `quest-detail-panel-${quest.id}`;
           detail.className = "quest-detail-panel";
@@ -2580,6 +2639,17 @@
         dailyState.generatedQuestIds = getDailyQuestIds();
         saveGameState();
       }
+      if (!dailyState.generatedQuestIds.length && !getDailyQuestIds().length) {
+        gameState.questSelection = {
+          ...normalizeQuestSelectionState(gameState.questSelection),
+          dateKey: null,
+          selectedQuestIds: [],
+          instances: {}
+        };
+        const selectedIds = syncRecommendedQuestSelection();
+        dailyState.generatedQuestIds = [...selectedIds];
+        saveGameState();
+      }
       return dailyState.generatedQuestIds;
     }
 
@@ -2628,8 +2698,6 @@
       if (!appShell || !screenButtons.length || !screens.length) return;
       if (gameState.awakening.status !== "completed") return;
 
-      stopActiveQuestTimer();
-
       screens.forEach((screen) => screen.classList.toggle("active", screen.dataset.screen === screenName));
       screenButtons.forEach((button) => button.classList.toggle("active", button.dataset.screen === screenName));
     }
@@ -2638,7 +2706,6 @@
       const navButtons = [...document.querySelectorAll(".nav-button")];
       navButtons.forEach((button) => {
         button.addEventListener("click", () => {
-          stopActiveQuestTimer();
           activateScreen(button.dataset.screen);
         });
       });
@@ -2972,6 +3039,11 @@
     }
 
     function updateCharacteristicsView() {
+      if (gameState.awakening?.calibration?.basicCompleted
+        && (!Number.isFinite(gameState.characteristics.strength?.current)
+          || !Number.isFinite(gameState.characteristics.endurance?.current))) {
+        finalizeAwakeningCalibration();
+      }
       const visibleCharacteristics = getVisibleCharacteristicsForUi();
       document.querySelectorAll("[data-characteristic]").forEach((item) => {
         const key = item.dataset.characteristic;
@@ -3788,10 +3860,20 @@
 
     document.querySelector("#start-journey-button").addEventListener("click", () => {
       if (!gameState.awakening.calibration.basicCompleted) return;
+      finalizeAwakeningCalibration();
       gameState.awakening.status = "completed";
       gameState.awakening.completedAt = new Date().toISOString();
       saveGameState();
       updateAwakeningAccess();
+      if (!gameState.dailyState.generatedQuestIds.length) {
+        gameState.questSelection = {
+          ...normalizeQuestSelectionState(gameState.questSelection),
+          dateKey: null,
+          selectedQuestIds: [],
+          instances: {}
+        };
+        gameState.dailyState = { dateKey: null, status: "active", completedAt: null, generatedQuestIds: [] };
+      }
       ensureDailyCycle();
       renderRecommendedQuests();
       updateDailyCycleView();
