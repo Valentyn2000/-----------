@@ -1244,6 +1244,7 @@
     const characterStorageKey = "life-game-character";
     const gameStorageKey = "life-game-state";
     const longTermStorageKey = "longTermQuestProgress";
+    const questTimerStorageKey = "life-game-quest-timers";
     const gameStateSchemaVersion = 2;
     const translations = {
       uk: {
@@ -1933,8 +1934,56 @@
       return { success: true, replacementId: replacementQuest.id, message: "Квест успішно замінено." };
     }
 
-    const activeQuestTimers = new Map();
-const questTimerStates = new Map();
+    function loadQuestTimerStates() {
+  const saved = localStorage.getItem(questTimerStorageKey);
+  if (!saved) return new Map();
+
+  try {
+    const parsed = JSON.parse(saved);
+    if (!parsed || typeof parsed !== "object") return new Map();
+
+    return new Map(
+      Object.entries(parsed)
+        .filter(([questId, state]) => questId && state && typeof state === "object")
+        .map(([questId, state]) => [
+          questId,
+          {
+            questId,
+            elapsedSeconds: Math.max(0, Number(state.elapsedSeconds) || 0),
+            remainingSeconds: Math.max(0, Number(state.remainingSeconds) || 0),
+            startedAt: Math.max(0, Number(state.startedAt) || 0),
+            running: state.running === true,
+            completed: state.completed === true,
+            stoppedEarly: state.stoppedEarly === true
+          }
+        ])
+    );
+  } catch {
+    return new Map();
+  }
+}
+
+function saveQuestTimerStates() {
+  const data = Object.fromEntries(
+    [...questTimerStates.entries()].map(([questId, state]) => [
+      questId,
+      {
+        questId,
+        elapsedSeconds: Math.max(0, Number(state.elapsedSeconds) || 0),
+        remainingSeconds: Math.max(0, Number(state.remainingSeconds) || 0),
+        startedAt: Math.max(0, Number(state.startedAt) || 0),
+        running: state.running === true,
+        completed: state.completed === true,
+        stoppedEarly: state.stoppedEarly === true
+      }
+    ])
+  );
+
+  localStorage.setItem(questTimerStorageKey, JSON.stringify(data));
+}
+
+const activeQuestTimers = new Map();
+const questTimerStates = loadQuestTimerStates();
 
  function stopActiveQuestTimer(questId) {
     const timer = activeQuestTimers.get(questId);
@@ -2032,7 +2081,8 @@ const questTimerStates = new Map();
         remainingSeconds: targetSeconds,
         startedAt: 0,
         running: false,
-        completed: false
+        completed: false,
+stoppedEarly: false
       };
       questTimerStates.set(quest.id, timerState);
       if (existingTimer) existingTimer.detail = detail;
@@ -2041,12 +2091,25 @@ const questTimerStates = new Map();
         timeDisplay.textContent = formatQuestTime(isDuration ? timerState.remainingSeconds : timerState.elapsedSeconds);
       };
       const setButtons = (running, finished) => {
-        startButton.hidden = running || finished;
-        startButton.textContent = timerState.elapsedSeconds > 0 || timerState.remainingSeconds < targetSeconds ? "ПРОДОВЖИТИ" : "ПОЧАТИ";
-        pauseButton.hidden = !running;
-        finishButton.hidden = isDuration ? finished || (!running && timerState.elapsedSeconds === 0) : !running;
-        restartButton.hidden = !finished && !(!running && (timerState.elapsedSeconds > 0 || timerState.remainingSeconds < targetSeconds));
-      };
+  const hasProgress =
+    timerState.startedAt > 0 ||
+    timerState.elapsedSeconds > 0 ||
+    (isDuration && timerState.remainingSeconds < targetSeconds);
+
+  startButton.hidden = running || finished;
+  startButton.textContent = hasProgress ? "ПРОДОВЖИТИ" : "ПОЧАТИ";
+
+  pauseButton.hidden = !running;
+
+  if (isDuration) {
+    finishButton.hidden = finished || timerState.stoppedEarly || (!running && !hasProgress);
+  } else {
+    finishButton.hidden = !running;
+  }
+
+  restartButton.hidden = !finished && !timerState.stoppedEarly;
+};
+        
       const currentElapsed = () => Math.max(0, Math.floor((Date.now() - timerState.startedAt) / 1000) + timerState.elapsedSeconds);
       const tick = () => {
        if (!activeQuestTimers.has(quest.id)) return;
@@ -2057,6 +2120,7 @@ renderTimer();
           if (timerState.remainingSeconds === 0 && !timerState.completed) {
             timerState.completed = true;
             timerState.running = false;
+            saveQuestTimerStates();
             stopActiveQuestTimer(quest.id);
             status.textContent = "КВЕСТ ВИКОНАНО";
             setButtons(false, true);
@@ -2070,8 +2134,10 @@ renderTimer();
       const start = () => {
         if (timerState.completed || activeQuestTimers.has(quest.id)) return;
         stopActiveQuestTimer(quest.id);
+        timerState.stoppedEarly = false;
         timerState.startedAt = Date.now();
         timerState.running = true;
+        saveQuestTimerStates();
         activeQuestTimers.set(quest.id, {
     questId: quest.id,
     state: timerState,
@@ -2092,6 +2158,8 @@ if (isDuration) {
 }
 
 timerState.running = false;
+timerState.stoppedEarly = true;
+saveQuestTimerStates();
 stopActiveQuestTimer(quest.id);
         status.textContent = "ПАУЗА";
         setButtons(false, false);
@@ -2109,6 +2177,8 @@ if (activeQuestTimers.has(quest.id) && timerState.running) {
 }
 
 timerState.running = false;
+timerState.stoppedEarly = true;
+saveQuestTimerStates();
 stopActiveQuestTimer(quest.id);
         if (isDuration) {
           status.textContent = "Квест не завершено";
@@ -2125,6 +2195,7 @@ stopActiveQuestTimer(quest.id);
       const restart = () => {
         stopActiveQuestTimer(quest.id);
         timerState.completed = false;
+        timerState.stoppedEarly = false;
         timerState.running = false;
         timerState.elapsedSeconds = 0;
         timerState.remainingSeconds = targetSeconds;
@@ -2137,18 +2208,21 @@ stopActiveQuestTimer(quest.id);
       pauseButton.addEventListener("click", pause);
       finishButton.addEventListener("click", finish);
       restartButton.addEventListener("click", restart);
-      if (existingTimer && timerState.running) {
-    if (existingTimer.intervalId) clearInterval(existingTimer.intervalId);
+      if (timerState.running) {
+  if (existingTimer?.intervalId) clearInterval(existingTimer.intervalId);
 
-    activeQuestTimers.set(quest.id, {
-        questId: quest.id,
-        state: timerState,
-        detail,
-        intervalId: setInterval(tick, 250)
-    });
+  activeQuestTimers.set(quest.id, {
+    questId: quest.id,
+    state: timerState,
+    detail,
+    intervalId: setInterval(tick, 250)
+  });
+
+  tick();
+} else {
+  renderTimer();
 }
-      renderTimer();
-      if (timerState.completed || gameState.completedQuests.includes(quest.id)) {
+      if (timerState.completed || (gameState.completedQuests.includes(quest.id) && timerState.startedAt === 0)) {
         status.textContent = "КВЕСТ ВИКОНАНО";
         setButtons(false, true);
         if (!quest.feedbackSubmitted) showQuestFeedback(detail, quest);
@@ -2156,7 +2230,8 @@ stopActiveQuestTimer(quest.id);
         status.textContent = timerState.running ? "ВИКОНУЄТЬСЯ" : (timerState.elapsedSeconds > 0 ? "ПАУЗА" : "");
         setButtons(timerState.running, false);
       }
-    }
+
+      }
 
     function renderRecommendedQuests() {
       const questsScreen = document.getElementById("quests-screen");
