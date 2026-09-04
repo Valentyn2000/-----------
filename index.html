@@ -1254,7 +1254,8 @@
       }
     };
     const language = "uk";
-    const recommendedQuestLimit = 4;
+    const requiredDailyQuestLimit = 4;
+    const optionalQuestBatchLimit = 4;
 
     const questTypeDefinitions = {
       repetitions: "repetitions",
@@ -1522,6 +1523,12 @@
         selectedQuestIds: Array.isArray(safeSelection.selectedQuestIds)
           ? safeSelection.selectedQuestIds.filter((questId) => typeof questId === "string")
           : [],
+          optionalQuestIds: Array.isArray(safeSelection.optionalQuestIds)
+  ? safeSelection.optionalQuestIds.filter((questId) => typeof questId === "string")
+  : [],
+optionalBatchNumber: Number.isInteger(safeSelection.optionalBatchNumber)
+  ? Math.max(0, safeSelection.optionalBatchNumber)
+  : 0,
         instances: safeSelection.instances && typeof safeSelection.instances === "object"
           ? safeSelection.instances
           : {},
@@ -1764,7 +1771,7 @@
         .map((quest) => ({ quest, score: scoreQuestForRecommendation(quest, selectedIds, recentSelections) }))
         .sort((first, second) => first.score - second.score);
 
-      let chosen = prioritized.slice(0, recommendedQuestLimit).map((entry) => entry.quest.id);
+      let chosen = prioritized.slice(0, requiredDailyQuestLimit).map((entry) => entry.quest.id);
 
       if (!chosen.length) {
         const fallback = library.filter((quest) => {
@@ -1774,7 +1781,7 @@
           if (isQuestInCooldown(quest, recentSelections)) return false;
           return matchesBaseRequirements(quest, playerContext);
         });
-        chosen = fallback.slice(0, recommendedQuestLimit).map((quest) => quest.id);
+        chosen = fallback.slice(0, requiredDailyQuestLimit).map((quest) => quest.id);
       }
 
       const uniqueChosen = [];
@@ -1790,8 +1797,46 @@
         uniqueChosen.push(questId);
       });
 
-      return uniqueChosen.slice(0, recommendedQuestLimit);
+      return uniqueChosen.slice(0, requiredDailyQuestLimit);
     }
+    function generateOptionalQuestSelection(excludedQuestIds = []) {
+  const library = getQuestLibrary();
+  const selectionState = normalizeQuestSelectionState(gameState.questSelection);
+  const recentSelections = [...selectionState.recentSelections];
+  const completedQuestIds = Array.isArray(gameState.completedQuests)
+    ? gameState.completedQuests
+    : [];
+  const playerContext = getPlayerContext();
+
+  const excludedIds = new Set([
+    ...selectionState.selectedQuestIds,
+    ...selectionState.optionalQuestIds,
+    ...excludedQuestIds
+  ]);
+
+  const candidates = library.filter((quest) => {
+    if (!quest.active) return false;
+    if (excludedIds.has(quest.id)) return false;
+    if (isPhysicalAlphaEnabled() && !isQuestAllowedInPhysicalAlpha(quest)) return false;
+    if (quest.repeatable === false && completedQuestIds.includes(quest.id)) return false;
+    if (isQuestInCooldown(quest, recentSelections)) return false;
+    if (!matchesBaseRequirements(quest, playerContext)) return false;
+    return true;
+  });
+
+  return candidates
+    .map((quest) => ({
+      quest,
+      score: scoreQuestForRecommendation(
+        quest,
+        [...selectionState.selectedQuestIds, ...selectionState.optionalQuestIds],
+        recentSelections
+      )
+    }))
+    .sort((first, second) => first.score - second.score)
+    .slice(0, optionalQuestBatchLimit)
+    .map((entry) => entry.quest.id);
+}
 
     function syncRecommendedQuestSelection() {
       const selectionState = normalizeQuestSelectionState(gameState.questSelection);
@@ -1801,7 +1846,7 @@
         return !isPhysicalAlphaEnabled() || (quest && isQuestAllowedInPhysicalAlpha(quest));
       };
       const selectedIds = Array.isArray(selectionState.selectedQuestIds) ? selectionState.selectedQuestIds : [];
-      const hasValidSelection = selectedIds.length === recommendedQuestLimit && selectedIds.every(physicalFilter);
+      const hasValidSelection = selectedIds.length === requiredDailyQuestLimit && selectedIds.every(physicalFilter);
       if (selectionState.dateKey === todayKey && hasValidSelection) {
         return selectedIds;
       }
@@ -1811,6 +1856,8 @@
         ...selectionState,
         dateKey: todayKey,
         selectedQuestIds: freshSelection,
+        optionalQuestIds: [],
+optionalBatchNumber: 0,
         instances: Object.fromEntries(freshSelection.map((questId) => {
           const quest = getQuestLibrary().find((candidate) => candidate.id === questId);
           return [questId, quest ? createQuestInstance(quest) : null];
@@ -1821,6 +1868,37 @@
       saveGameState();
       return freshSelection;
     }
+    function syncOptionalQuestSelection() {
+  let selectionState = normalizeQuestSelectionState(gameState.questSelection);
+  const todayKey = getTodayKey();
+
+  if (selectionState.dateKey !== todayKey) {
+    syncRecommendedQuestSelection();
+    selectionState = normalizeQuestSelectionState(gameState.questSelection);
+  }
+
+  const optionalSelection = generateOptionalQuestSelection();
+
+  const optionalInstances = Object.fromEntries(
+    optionalSelection.map((questId) => {
+      const quest = getQuestLibrary().find((candidate) => candidate.id === questId);
+      return [questId, quest ? createQuestInstance(quest) : null];
+    }).filter((entry) => entry[1])
+  );
+
+  gameState.questSelection = {
+    ...selectionState,
+    optionalQuestIds: optionalSelection,
+    optionalBatchNumber: selectionState.optionalBatchNumber + 1,
+    instances: {
+      ...selectionState.instances,
+      ...optionalInstances
+    }
+  };
+
+  saveGameState();
+  return optionalSelection;
+}
 
     function getSelectedRecommendedQuestIds() {
       const selectionState = normalizeQuestSelectionState(gameState.questSelection);
@@ -1832,8 +1910,8 @@
       if (selectionState.dateKey !== todayKey) {
         return syncRecommendedQuestSelection();
       }
-      const validSelection = selectionState.selectedQuestIds.filter(physicalFilter).slice(0, recommendedQuestLimit);
-      if (validSelection.length !== recommendedQuestLimit || validSelection.length !== selectionState.selectedQuestIds.length) {
+      const validSelection = selectionState.selectedQuestIds.filter(physicalFilter).slice(0, requiredDailyQuestLimit);
+      if (validSelection.length !== requiredDailyQuestLimit || validSelection.length !== selectionState.selectedQuestIds.length) {
         return syncRecommendedQuestSelection();
       }
       return validSelection;
@@ -1998,6 +2076,10 @@ const questTimerStates = loadQuestTimerStates();
 
       gameState.experience += Number(quest.xpReward || 0);
       gameState.completedQuests.push(questId);
+      if (!Array.isArray(gameState.dailyState.completedQuestIds)) {
+  gameState.dailyState.completedQuestIds = [];
+}
+gameState.dailyState.completedQuestIds.push(questId);
       gameState.completedQuestCount += 1;
 
       if (quest.characteristicImpact && gameState.characteristics[quest.characteristicImpact]) {
@@ -2023,6 +2105,25 @@ const questTimerStates = loadQuestTimerStates();
 
       recordPhysicalActivityFromQuest(quest, questId, completionResult);
       completeDayIfReady();
+      const selectionState = normalizeQuestSelectionState(gameState.questSelection);
+
+const requiredQuestIds =
+  selectionState.dateKey === getTodayKey()
+    ? selectionState.selectedQuestIds.slice(0, requiredDailyQuestLimit)
+    : [];
+
+const requiredQuestsCompleted =
+  requiredQuestIds.length === requiredDailyQuestLimit &&
+  requiredQuestIds.every((requiredQuestId) =>
+    gameState.completedQuests.includes(requiredQuestId)
+  );
+
+if (
+  requiredQuestsCompleted &&
+  selectionState.optionalQuestIds.length === 0
+) {
+  syncOptionalQuestSelection();
+}
       saveGameState();
       updateGameStateView();
       updateDailyCycleView();
@@ -2242,15 +2343,30 @@ stopActiveQuestTimer(quest.id);
 
       renderPlayerContextControls();
 
-      const ids = getSelectedRecommendedQuestIds().filter((questId) => {
-        const quest = getQuestLibrary().find((candidate) => candidate.id === questId);
-        return !isPhysicalAlphaEnabled() || (quest && isQuestAllowedInPhysicalAlpha(quest));
-      });
+      const selectionState = normalizeQuestSelectionState(gameState.questSelection);
+const requiredIds = getSelectedRecommendedQuestIds();
+
+const requiredQuestsCompleted =
+  requiredIds.length === requiredDailyQuestLimit &&
+  requiredIds.every((questId) => gameState.completedQuests.includes(questId));
+
+const isOptionalBatch =
+  requiredQuestsCompleted &&
+  selectionState.optionalQuestIds.length > 0;
+
+const sourceIds = isOptionalBatch
+  ? selectionState.optionalQuestIds
+  : requiredIds;
+
+const ids = sourceIds.filter((questId) => {
+  const quest = getQuestLibrary().find((candidate) => candidate.id === questId);
+  return !isPhysicalAlphaEnabled() || (quest && isQuestAllowedInPhysicalAlpha(quest));
+});
       const recommendationSection = document.createElement("section");
       recommendationSection.className = "section";
       recommendationSection.id = "recommended-quests-section";
       recommendationSection.innerHTML = `
-        <p class="section-label">Рекомендовані квести</p>
+        <p class="section-label">${isOptionalBatch ? "ДОДАТКОВІ КВЕСТИ" : "ОБОВ'ЯЗКОВІ КВЕСТИ"}</p>
         <div class="recommended-quest-list"></div>
       `;
 
@@ -2296,7 +2412,7 @@ stopActiveQuestTimer(quest.id);
           ${parameterSummary.length ? `<p>${parameterSummary.join(" · ")}</p>` : ""}
           <div class="quest-detail-actions" style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:12px;">
             <button class="complete-button quest-start-button" type="button" data-quest-id="${quest.id}" ${isCompleted ? "disabled" : ""}>${isCompleted ? "ВИКОНАНО" : "ПОЧАТИ"}</button>
-            <button class="complete-button replace-quest-button" type="button" data-replace-quest-id="${quest.id}" style="margin-top:0;">ЗАМІНИТИ</button>
+            ${isOptionalBatch ? `<button class="complete-button replace-quest-button" type="button" data-replace-quest-id="${quest.id}">ЗАМІНИТИ</button>` : ""}
           </div>
         `;
 
@@ -2320,7 +2436,7 @@ stopActiveQuestTimer(quest.id);
           }
         });
 
-        item.querySelector(".replace-quest-button").addEventListener("click", (event) => {
+        item.querySelector(".replace-quest-button")?.addEventListener("click", (event) => {
           event.preventDefault();
           event.stopPropagation();
           const selectionBeforeReplacement = structuredClone(gameState.questSelection);
@@ -2488,7 +2604,8 @@ stopActiveQuestTimer(quest.id);
         dateKey: null,
         status: "active",
         completedAt: null,
-        generatedQuestIds: []
+        generatedQuestIds: [],
+        completedQuestIds: []
       },
       dailyHistory: [],
       level: 1,
@@ -2706,7 +2823,13 @@ stopActiveQuestTimer(quest.id);
       const dailyState = gameState.dailyState;
       if (dailyState.dateKey !== todayKey) {
         const selectedIds = syncRecommendedQuestSelection();
-        gameState.dailyState = { dateKey: todayKey, status: "active", completedAt: null, generatedQuestIds: [...selectedIds] };
+       gameState.dailyState = {
+  dateKey: todayKey,
+  status: "active",
+  completedAt: null,
+  generatedQuestIds: [...selectedIds],
+  completedQuestIds: []
+};
         saveGameState();
         return selectedIds;
       }
@@ -2725,6 +2848,20 @@ stopActiveQuestTimer(quest.id);
         dailyState.generatedQuestIds = [...selectedIds];
         saveGameState();
       }
+      if (!dailyState.completedQuestIdsInitialized) {
+  const selectionState = normalizeQuestSelectionState(gameState.questSelection);
+  const todayRequiredQuestIds =
+    selectionState.dateKey === todayKey
+      ? selectionState.selectedQuestIds.slice(0, requiredDailyQuestLimit)
+      : [];
+
+  dailyState.completedQuestIds = todayRequiredQuestIds.filter((questId) =>
+    gameState.completedQuests.includes(questId)
+  );
+
+  dailyState.completedQuestIdsInitialized = true;
+  saveGameState();
+}
       return dailyState.generatedQuestIds;
     }
 
@@ -2736,7 +2873,11 @@ stopActiveQuestTimer(quest.id);
       const questIds = ensureDailyCycle();
       const completedCount = questIds.filter((questId) => gameState.completedQuests.includes(questId)).length;
       const totalCount = questIds.length;
-      progress.textContent = `Виконано ${completedCount} / ${totalCount} квестів`;
+      const todayCompletedCount = Array.isArray(gameState.dailyState.completedQuestIds)
+  ? gameState.dailyState.completedQuestIds.length
+  : 0;
+
+progress.textContent = `Сьогодні виконано квестів: ${todayCompletedCount}`;
       const isComplete = gameState.dailyState.status === "completed";
       status.hidden = !isComplete;
       status.textContent = isComplete ? "Сьогоднішній шлях завершено." : "";
@@ -2879,7 +3020,16 @@ stopActiveQuestTimer(quest.id);
           dateKey: typeof safeState.dailyState?.dateKey === "string" ? safeState.dailyState.dateKey : null,
           status: safeState.dailyState?.status === "completed" ? "completed" : "active",
           completedAt: typeof safeState.dailyState?.completedAt === "string" ? safeState.dailyState.completedAt : null,
-          generatedQuestIds: Array.isArray(safeState.dailyState?.generatedQuestIds) ? safeState.dailyState.generatedQuestIds.filter((id) => typeof id === "string") : []
+          generatedQuestIds: Array.isArray(safeState.dailyState?.generatedQuestIds) ? safeState.dailyState.generatedQuestIds.filter((id) => typeof id === "string") : [],
+          completedQuestIds: Array.isArray(safeState.dailyState?.completedQuestIds)
+  ? safeState.dailyState.completedQuestIds.filter((questId) => typeof questId === "string")
+  : Array.isArray(safeState.dailyState?.generatedQuestIds)
+    ? safeState.dailyState.generatedQuestIds.filter((questId) =>
+        Array.isArray(safeState.completedQuests) &&
+        safeState.completedQuests.includes(questId)
+      )
+    : [],
+    completedQuestIdsInitialized: safeState.dailyState?.completedQuestIdsInitialized === true,
         },
         dailyHistory: Array.isArray(safeState.dailyHistory) ? safeState.dailyHistory : [],
         unlockNoticesShown: Array.isArray(safeState.unlockNoticesShown) ? safeState.unlockNoticesShown : [],
