@@ -1440,6 +1440,1142 @@
           active: true
         },
         {
+  id: "library-alpha-squat-10",
+  exerciseId: "squats",
+  title: "10 присідань",
+  description: "Виконай 10 контрольованих присідань.",
+  category: "Фізичний розвиток",
+  characteristicImpact: "strength",
+  questType: questTypeDefinitions.repetitions,
+  difficulty: difficultyDefinitions.easy,
+  xpReward: 12,
+  characteristicProgressReward: 2,
+  repeatable: true,
+  cooldown: { type: "day", amount: 1 },
+  requirements: { minimumAvailableTime: 4 },
+  safety: { physical: true, lowImpact: true },
+  parameters: {
+    reps: 10,
+    minValue: 5,
+    maxValue: 30,
+    step: 1
+  },
+  muscleGroups: {
+    primary: ["квадрицепси", "сідниці"],
+    secondary: ["задня поверхня стегна", "кор"]
+  },
+  equipment: { type: "none" },
+  instructions: [
+    "Постав стопи приблизно на ширині плечей.",
+    "Напруж м'язи корпуса.",
+    "Почни рух, згинаючи коліна та відводячи таз назад.",
+    "Тримай стопи повністю на підлозі.",
+    "Опускайся до комфортної глибини.",
+    "Контрольовано повернися у вихідне положення."
+  ],
+  safetyTips: [
+    "Коліна повинні рухатися приблизно в напрямку носків.",
+    "Не округлюй спину.",
+    "Не виконуй рух через біль."
+  ],
+  progression: {
+    type: "reps",
+    increaseAfterEasyFeedback: 2,
+    decreaseAfterHardFeedback: 2
+  },
+  feedbackEnabled: true,
+  active: true
+},
+
+{
+  id: "library-alpha-reverse-lunges-8",
+  exerciseId: "reverse-lunges",
+  title: "8 випадів назад",
+  description: "Виконай 8 випадів назад: по 4 на кожну ногу.",
+  category: "Фізичний розвиток",
+  characteristicImpact: "strength",
+  questType: questTypeDefinitions.repetitions,
+  difficulty: difficultyDefinitions.easy,
+  xpReward: 14,
+  characteristicProgressReward: 2,
+  repeatable: true,
+  cooldown: { type: "day", amount: 1 },
+  requirements: { minimumAvailableTime: 5 },
+  safety: { physical: true, lowImpact: true },
+  parameters: {
+    reps: 8,
+    minValue: 4,
+    maxValue: 24,
+    step: 2
+  },
+  muscleGroups: {
+    primary: ["квадрицепси", "сідниці"],
+    secondary: ["задня поверхня стегна", "кор"]
+  },
+  equipment: { type: "none" },
+  instructions: [
+    "Стань прямо.",
+    "Зроби крок однією ногою назад.",
+    "Контрольовано опустися вниз.",
+    "Переднє коліно тримай у напрямку стопи.",
+    "Відштовхнися передньою ногою та повернися у вихідне положення.",
+    "Чергуй ноги."
+  ],
+  safetyTips: [
+    "Не дозволяй коліну різко завалюватися всередину.",
+    "Зберігай рівновагу та не поспішай."
+  ],
+  progression: {
+    type: "reps",
+    increaseAfterEasyFeedback: 2,
+    decreaseAfterHardFeedback: 2
+  },
+  feedbackEnabled: true,
+  active: true
+},
+
+{
+  id: "library-alpha-glute-bridge-12",
+  exerciseId: "glute-bridge",
+  title: "12 сідничних мостів",
+  description: "Виконай 12 контрольованих підйомів таза.",
+  category: "Фізичний розвиток",
+  characteristicImpact: "strength",
+  questType: questTypeDefinitions.repetitions,
+  difficulty: difficultyDefinitions.easy,
+  xpReward: 12,
+  characteristicProgressReward: 2,
+  repeatable: true,
+  cooldown: { type: "day", amount: 1 },
+  requirements: { minimumAvailableTime: 4 },
+  safety: { physical: true, lowImpact: true },
+  parameters: {
+    reps: 12,
+    minValue: 6,
+    maxValue: 30,
+    step: 2
+  },
+  muscleGroups: {
+    primary: ["сідниці"],
+    secondary: ["задня поверхня стегна", "кор"]
+  },
+  equipment: { type: "none" },
+  instructions: [
+    "Ляж на спину та зігни коліна.",
+    "Постав стопи на підлогу.",
+    "Напруж живіт і сідниці.",
+    "Підніми таз.",
+    "У верхній точці стисни сідниці.",
+    "Повільно опусти таз."
+  ],
+  safetyTips: [
+    "Не піднімай таз за рахунок сильного прогину попереку.",
+    "Виконуй рух плавно."
+  ],
+  progression: {
+    type: "reps",
+    increaseAfterEasyFeedback: 2,
+    decreaseAfterHardFeedback: 2
+  },
+  feedbackEnabled: true,
+  active: true
+},
+
+{
+  id: "library-alpha-calf-raises-15",
+  exerciseId: "calf-raises",
+  title: "15 підйомів на носки",
+  description: "Виконай 15 плавних підйомів на носки.",
+  category: "Витривалість",
+  characteristicImpact: "endurance",
+  questType: questTypeDefinitions.repetitions,
+  difficulty: difficultyDefinitions.easy,
+  xpReward: 10,
+  characteristicProgressReward: 2,
+  repeatable: true,
+  cooldown: { type: "day", amount: 1 },
+  requirements: { minimumAvailableTime: 3 },
+  safety: { physical: true, lowImpact: true },
+  parameters: {
+    reps: 15,
+    minValue: 8,
+    maxValue: 40,
+    step: 2
+  },
+  muscleGroups: {
+    primary: ["литкові м'язи"],
+    secondary: ["стопи"]
+  },
+  equipment: { type: "none" },
+  instructions: [
+    "Стань рівно.",
+    "За потреби легко тримайся за стійку опору.",
+    "Плавно підніми п'яти.",
+    "Затримайся коротко на носках.",
+    "Повільно опусти п'яти."
+  ],
+  safetyTips: [
+    "Не підстрибуй.",
+    "Не використовуй нестійку опору."
+  ],
+  progression: {
+    type: "reps",
+    increaseAfterEasyFeedback: 3,
+    decreaseAfterHardFeedback: 2
+  },
+  feedbackEnabled: true,
+  active: true
+},
+
+{
+  id: "library-alpha-pushups-6",
+  exerciseId: "pushups",
+  title: "6 віджимань",
+  description: "Виконай 6 контрольованих віджимань.",
+  category: "Фізичний розвиток",
+  characteristicImpact: "strength",
+  questType: questTypeDefinitions.repetitions,
+  difficulty: difficultyDefinitions.easy,
+  xpReward: 12,
+  characteristicProgressReward: 2,
+  repeatable: true,
+  cooldown: { type: "day", amount: 1 },
+  requirements: { minimumAvailableTime: 4 },
+  safety: { physical: true, lowImpact: true },
+  parameters: {
+    reps: 6,
+    minValue: 3,
+    maxValue: 30,
+    step: 1
+  },
+  muscleGroups: {
+    primary: ["груди", "трицепс"],
+    secondary: ["плечі", "кор"]
+  },
+  equipment: { type: "none" },
+  instructions: [
+    "Постав долоні трохи ширше плечей.",
+    "Тримай тіло приблизно в одній прямій лінії.",
+    "Напруж кор і сідниці.",
+    "Контрольовано опусти корпус.",
+    "Відтиснися назад."
+  ],
+  safetyTips: [
+    "Не дозволяй попереку сильно провисати.",
+    "Не розводь лікті різко в сторони."
+  ],
+  progression: {
+    type: "reps",
+    increaseAfterEasyFeedback: 1,
+    decreaseAfterHardFeedback: 1
+  },
+  feedbackEnabled: true,
+  active: true
+},
+
+{
+  id: "library-alpha-incline-pushups-10",
+  exerciseId: "incline-pushups",
+  title: "10 віджимань від опори",
+  description: "Виконай 10 віджимань від стійкої підвищеної опори.",
+  category: "Фізичний розвиток",
+  characteristicImpact: "strength",
+  questType: questTypeDefinitions.repetitions,
+  difficulty: difficultyDefinitions.easy,
+  xpReward: 12,
+  characteristicProgressReward: 2,
+  repeatable: true,
+  cooldown: { type: "day", amount: 1 },
+  requirements: { minimumAvailableTime: 4 },
+  safety: { physical: true, lowImpact: true },
+  parameters: {
+    reps: 10,
+    minValue: 5,
+    maxValue: 30,
+    step: 1
+  },
+  muscleGroups: {
+    primary: ["груди", "трицепс"],
+    secondary: ["плечі", "кор"]
+  },
+  equipment: { type: "stable-support" },
+  instructions: [
+    "Постав долоні на стійку опору.",
+    "Відійди ногами назад.",
+    "Тримай тіло прямим.",
+    "Контрольовано наблизь груди до опори.",
+    "Відтиснися назад."
+  ],
+  safetyTips: [
+    "Переконайся, що опора не рухається.",
+    "Не допускай сильного прогину попереку."
+  ],
+  progression: {
+    type: "reps",
+    increaseAfterEasyFeedback: 2,
+    decreaseAfterHardFeedback: 2
+  },
+  feedbackEnabled: true,
+  active: true
+},
+
+{
+  id: "library-alpha-plank-25s",
+  exerciseId: "plank",
+  title: "Планка 25 секунд",
+  description: "Утримуй стабільну планку 25 секунд.",
+  category: "Витривалість",
+  characteristicImpact: "endurance",
+  questType: questTypeDefinitions.duration,
+  difficulty: difficultyDefinitions.easy,
+  xpReward: 14,
+  characteristicProgressReward: 2,
+  repeatable: true,
+  cooldown: { type: "day", amount: 1 },
+  requirements: { minimumAvailableTime: 2 },
+  safety: { physical: true, lowImpact: true },
+  parameters: {
+    durationSeconds: 25,
+    minValue: 10,
+    maxValue: 120,
+    step: 5
+  },
+  muscleGroups: {
+    primary: ["кор"],
+    secondary: ["плечі", "сідниці"]
+  },
+  equipment: { type: "none" },
+  instructions: [
+    "Постав лікті приблизно під плечима.",
+    "Випрями ноги.",
+    "Напруж живіт і сідниці.",
+    "Тримай тіло в стабільному положенні.",
+    "Дихай рівномірно."
+  ],
+  safetyTips: [
+    "Не допускай сильного провисання попереку.",
+    "При болю в попереку припини вправу."
+  ],
+  progression: {
+    type: "duration",
+    increaseAfterEasyFeedback: 5,
+    decreaseAfterHardFeedback: 5
+  },
+  feedbackEnabled: true,
+  active: true
+},
+
+{
+  id: "library-alpha-dead-bug-8",
+  exerciseId: "dead-bug",
+  title: "8 повторень Dead Bug",
+  description: "Виконай 8 повторень: по 4 на кожну сторону.",
+  category: "Витривалість",
+  characteristicImpact: "endurance",
+  questType: questTypeDefinitions.repetitions,
+  difficulty: difficultyDefinitions.easy,
+  xpReward: 12,
+  characteristicProgressReward: 2,
+  repeatable: true,
+  cooldown: { type: "day", amount: 1 },
+  requirements: { minimumAvailableTime: 4 },
+  safety: { physical: true, lowImpact: true },
+  parameters: {
+    reps: 8,
+    minValue: 4,
+    maxValue: 24,
+    step: 2
+  },
+  muscleGroups: {
+    primary: ["кор"],
+    secondary: ["згиначі стегна"]
+  },
+  equipment: { type: "none" },
+  instructions: [
+    "Ляж на спину.",
+    "Підніми руки.",
+    "Зігни стегна й коліна приблизно під прямим кутом.",
+    "Напруж живіт.",
+    "Повільно опускай протилежні руку та ногу.",
+    "Повернися назад і зміни сторону."
+  ],
+  safetyTips: [
+    "Не допускай сильного прогину попереку.",
+    "Зменш амплітуду, якщо втрачаєш контроль."
+  ],
+  progression: {
+    type: "reps",
+    increaseAfterEasyFeedback: 2,
+    decreaseAfterHardFeedback: 2
+  },
+  feedbackEnabled: true,
+  active: true
+},
+
+{
+  id: "library-alpha-bird-dog-8",
+  exerciseId: "bird-dog",
+  title: "8 повторень Bird Dog",
+  description: "Виконай 8 повторень: по 4 на кожну сторону.",
+  category: "Витривалість",
+  characteristicImpact: "endurance",
+  questType: questTypeDefinitions.repetitions,
+  difficulty: difficultyDefinitions.easy,
+  xpReward: 12,
+  characteristicProgressReward: 2,
+  repeatable: true,
+  cooldown: { type: "day", amount: 1 },
+  requirements: { minimumAvailableTime: 4 },
+  safety: { physical: true, lowImpact: true },
+  parameters: {
+    reps: 8,
+    minValue: 4,
+    maxValue: 24,
+    step: 2
+  },
+  muscleGroups: {
+    primary: ["кор", "м'язи спини"],
+    secondary: ["сідниці", "плечі"]
+  },
+  equipment: { type: "none" },
+  instructions: [
+    "Стань на долоні й коліна.",
+    "Тримай спину нейтрально.",
+    "Витягни вперед одну руку.",
+    "Одночасно витягни назад протилежну ногу.",
+    "Повернися у вихідне положення.",
+    "Зміни сторону."
+  ],
+  safetyTips: [
+    "Не розвертай таз.",
+    "Не прогинай поперек."
+  ],
+  progression: {
+    type: "reps",
+    increaseAfterEasyFeedback: 2,
+    decreaseAfterHardFeedback: 2
+  },
+  feedbackEnabled: true,
+  active: true
+},
+
+{
+  id: "library-alpha-goblet-squat-8",
+  exerciseId: "goblet-squat",
+  title: "8 присідань з гантеллю",
+  description: "Виконай 8 Goblet-присідань з однією легкою гантеллю.",
+  category: "Фізичний розвиток",
+  characteristicImpact: "strength",
+  questType: questTypeDefinitions.repetitions,
+  difficulty: difficultyDefinitions.medium,
+  xpReward: 18,
+  characteristicProgressReward: 3,
+  repeatable: true,
+  cooldown: { type: "day", amount: 1 },
+  requirements: { minimumAvailableTime: 5 },
+  safety: { physical: true, weighted: true },
+  parameters: {
+    reps: 8,
+    minValue: 6,
+    maxValue: 20,
+    step: 1,
+    suggestedWeightKg: 4,
+    maximumEquipmentWeightKg: 15
+  },
+  muscleGroups: {
+    primary: ["квадрицепси", "сідниці"],
+    secondary: ["задня поверхня стегна", "кор"]
+  },
+  equipment: {
+    type: "dumbbell",
+    count: 1,
+    adjustable: true,
+    maxWeightKg: 15
+  },
+  instructions: [
+    "Тримай одну гантель двома руками біля грудей.",
+    "Постав стопи у стабільне положення.",
+    "Напруж кор.",
+    "Зігни коліна та відведи таз назад.",
+    "Опускайся до комфортної глибини.",
+    "Контрольовано піднімися."
+  ],
+  safetyTips: [
+    "Починай з легкої ваги.",
+    "Не округлюй спину.",
+    "Не збільшуй вагу, якщо техніка погіршується."
+  ],
+  progression: {
+    type: "metadataOnly",
+    futureMode: "repsThenWeight"
+  },
+  feedbackEnabled: true,
+  active: true
+},
+
+{
+  id: "library-alpha-dumbbell-rdl-8",
+  exerciseId: "dumbbell-rdl",
+  title: "8 румунських тяг з гантелями",
+  description: "Виконай 8 контрольованих румунських тяг з двома легкими гантелями.",
+  category: "Фізичний розвиток",
+  characteristicImpact: "strength",
+  questType: questTypeDefinitions.repetitions,
+  difficulty: difficultyDefinitions.medium,
+  xpReward: 20,
+  characteristicProgressReward: 3,
+  repeatable: true,
+  cooldown: { type: "day", amount: 1 },
+  requirements: { minimumAvailableTime: 6 },
+  safety: { physical: true, weighted: true },
+  parameters: {
+    reps: 8,
+    minValue: 6,
+    maxValue: 18,
+    step: 1,
+    suggestedWeightPerDumbbellKg: 4,
+    maximumEquipmentWeightPerDumbbellKg: 15
+  },
+  muscleGroups: {
+    primary: ["задня поверхня стегна", "сідниці"],
+    secondary: ["м'язи спини", "кор", "передпліччя"]
+  },
+  equipment: {
+    type: "dumbbells",
+    count: 2,
+    adjustable: true,
+    maxWeightPerDumbbellKg: 15
+  },
+  instructions: [
+    "Стань рівно та тримай гантелі перед стегнами.",
+    "Трохи зігни коліна.",
+    "Тримай спину нейтрально.",
+    "Відводь таз назад.",
+    "Опускай гантелі близько до ніг.",
+    "Зупинись при відчутті натягу задньої поверхні стегон.",
+    "Поверни таз у вихідне положення."
+  ],
+  safetyTips: [
+    "Не округлюй поперек.",
+    "Не перетворюй рух на присідання.",
+    "Вага має залишатися контрольованою."
+  ],
+  progression: {
+    type: "metadataOnly",
+    futureMode: "repsThenWeight"
+  },
+  feedbackEnabled: true,
+  active: true
+},
+
+{
+  id: "library-alpha-one-arm-row-16",
+  exerciseId: "one-arm-dumbbell-row",
+  title: "16 тяг гантелі однією рукою",
+  description: "Виконай 16 повторень: по 8 кожною рукою.",
+  category: "Фізичний розвиток",
+  characteristicImpact: "strength",
+  questType: questTypeDefinitions.repetitions,
+  difficulty: difficultyDefinitions.medium,
+  xpReward: 20,
+  characteristicProgressReward: 3,
+  repeatable: true,
+  cooldown: { type: "day", amount: 1 },
+  requirements: { minimumAvailableTime: 6 },
+  safety: { physical: true, weighted: true },
+  parameters: {
+    reps: 16,
+    minValue: 8,
+    maxValue: 30,
+    step: 2,
+    suggestedWeightKg: 4,
+    maximumEquipmentWeightKg: 15
+  },
+  muscleGroups: {
+    primary: ["широчайші м'язи спини", "верхня частина спини"],
+    secondary: ["біцепс", "передпліччя"]
+  },
+  equipment: {
+    type: "dumbbell",
+    count: 1,
+    adjustable: true,
+    maxWeightKg: 15
+  },
+  instructions: [
+    "Нахили корпус вперед із нейтральною спиною.",
+    "За потреби спирайся вільною рукою на стійку опору.",
+    "Потягни лікоть руки з гантеллю назад.",
+    "Підведи гантель до боку тулуба.",
+    "Повільно опусти її.",
+    "Після половини повторень зміни руку."
+  ],
+  safetyTips: [
+    "Не розгойдуй корпус.",
+    "Не округлюй поперек.",
+    "Не смикай гантель."
+  ],
+  progression: {
+    type: "metadataOnly",
+    futureMode: "repsThenWeight"
+  },
+  feedbackEnabled: true,
+  active: true
+},
+
+{
+  id: "library-alpha-floor-press-8",
+  exerciseId: "dumbbell-floor-press",
+  title: "8 жимів гантелей лежачи",
+  description: "Виконай 8 контрольованих жимів двох гантелей лежачи на підлозі.",
+  category: "Фізичний розвиток",
+  characteristicImpact: "strength",
+  questType: questTypeDefinitions.repetitions,
+  difficulty: difficultyDefinitions.medium,
+  xpReward: 18,
+  characteristicProgressReward: 3,
+  repeatable: true,
+  cooldown: { type: "day", amount: 1 },
+  requirements: { minimumAvailableTime: 6 },
+  safety: { physical: true, weighted: true },
+  parameters: {
+    reps: 8,
+    minValue: 6,
+    maxValue: 20,
+    step: 1,
+    suggestedWeightPerDumbbellKg: 3,
+    maximumEquipmentWeightPerDumbbellKg: 15
+  },
+  muscleGroups: {
+    primary: ["груди", "трицепс"],
+    secondary: ["плечі"]
+  },
+  equipment: {
+    type: "dumbbells",
+    count: 2,
+    adjustable: true,
+    maxWeightPerDumbbellKg: 15
+  },
+  instructions: [
+    "Ляж на спину.",
+    "Зігни коліна та постав стопи на підлогу.",
+    "Тримай гантелі біля грудей.",
+    "Контрольовано вичави їх вгору.",
+    "Повільно опусти руки.",
+    "Зупини рух, коли плечова частина руки м'яко торкнеться підлоги."
+  ],
+  safetyTips: [
+    "Не кидай лікті на підлогу.",
+    "Використовуй вагу, яку повністю контролюєш."
+  ],
+  progression: {
+    type: "metadataOnly",
+    futureMode: "repsThenWeight"
+  },
+  feedbackEnabled: true,
+  active: true
+},
+
+{
+  id: "library-alpha-overhead-press-8",
+  exerciseId: "dumbbell-overhead-press",
+  title: "8 жимів гантелей над головою",
+  description: "Виконай 8 контрольованих жимів двох легких гантелей над головою.",
+  category: "Фізичний розвиток",
+  characteristicImpact: "strength",
+  questType: questTypeDefinitions.repetitions,
+  difficulty: difficultyDefinitions.medium,
+  xpReward: 18,
+  characteristicProgressReward: 3,
+  repeatable: true,
+  cooldown: { type: "day", amount: 1 },
+  requirements: { minimumAvailableTime: 6 },
+  safety: { physical: true, weighted: true },
+  parameters: {
+    reps: 8,
+    minValue: 6,
+    maxValue: 18,
+    step: 1,
+    suggestedWeightPerDumbbellKg: 2,
+    maximumEquipmentWeightPerDumbbellKg: 15
+  },
+  muscleGroups: {
+    primary: ["плечі"],
+    secondary: ["трицепс", "кор"]
+  },
+  equipment: {
+    type: "dumbbells",
+    count: 2,
+    adjustable: true,
+    maxWeightPerDumbbellKg: 15
+  },
+  instructions: [
+    "Стань стійко.",
+    "Тримай гантелі приблизно на рівні плечей.",
+    "Напруж кор і сідниці.",
+    "Контрольовано вичави гантелі вгору.",
+    "Повільно поверни їх до плечей."
+  ],
+  safetyTips: [
+    "Не прогинай сильно поперек.",
+    "Не використовуй сильний поштовх ногами.",
+    "Починай з легкої ваги."
+  ],
+  progression: {
+    type: "metadataOnly",
+    futureMode: "repsThenWeight"
+  },
+  feedbackEnabled: true,
+  active: true
+},
+
+{
+  id: "library-alpha-biceps-curl-10",
+  exerciseId: "dumbbell-biceps-curl",
+  title: "10 згинань рук з гантелями",
+  description: "Виконай 10 контрольованих згинань рук.",
+  category: "Фізичний розвиток",
+  characteristicImpact: "strength",
+  questType: questTypeDefinitions.repetitions,
+  difficulty: difficultyDefinitions.easy,
+  xpReward: 14,
+  characteristicProgressReward: 2,
+  repeatable: true,
+  cooldown: { type: "day", amount: 1 },
+  requirements: { minimumAvailableTime: 5 },
+  safety: { physical: true, weighted: true },
+  parameters: {
+    reps: 10,
+    minValue: 6,
+    maxValue: 24,
+    step: 1,
+    suggestedWeightPerDumbbellKg: 2,
+    maximumEquipmentWeightPerDumbbellKg: 15
+  },
+  muscleGroups: {
+    primary: ["біцепс"],
+    secondary: ["передпліччя"]
+  },
+  equipment: {
+    type: "dumbbells",
+    count: 2,
+    adjustable: true,
+    maxWeightPerDumbbellKg: 15
+  },
+  instructions: [
+    "Стань рівно.",
+    "Тримай лікті близько до тулуба.",
+    "Зігни руки в ліктях.",
+    "Підніми гантелі контрольовано.",
+    "Повільно опусти їх."
+  ],
+  safetyTips: [
+    "Не розгойдуй тулуб.",
+    "Не використовуй ривки."
+  ],
+  progression: {
+    type: "metadataOnly",
+    futureMode: "repsThenWeight"
+  },
+  feedbackEnabled: true,
+  active: true
+},
+
+{
+  id: "library-alpha-hammer-curl-10",
+  exerciseId: "hammer-curl",
+  title: "10 молоткових згинань",
+  description: "Виконай 10 контрольованих молоткових згинань.",
+  category: "Фізичний розвиток",
+  characteristicImpact: "strength",
+  questType: questTypeDefinitions.repetitions,
+  difficulty: difficultyDefinitions.easy,
+  xpReward: 14,
+  characteristicProgressReward: 2,
+  repeatable: true,
+  cooldown: { type: "day", amount: 1 },
+  requirements: { minimumAvailableTime: 5 },
+  safety: { physical: true, weighted: true },
+  parameters: {
+    reps: 10,
+    minValue: 6,
+    maxValue: 24,
+    step: 1,
+    suggestedWeightPerDumbbellKg: 2,
+    maximumEquipmentWeightPerDumbbellKg: 15
+  },
+  muscleGroups: {
+    primary: ["біцепс", "плечовий м'яз"],
+    secondary: ["передпліччя"]
+  },
+  equipment: {
+    type: "dumbbells",
+    count: 2,
+    adjustable: true,
+    maxWeightPerDumbbellKg: 15
+  },
+  instructions: [
+    "Тримай гантелі долонями одна до одної.",
+    "Лікті залишай близько до тулуба.",
+    "Зігни руки.",
+    "Підніми гантелі контрольовано.",
+    "Повільно опусти їх."
+  ],
+  safetyTips: [
+    "Не розгойдуй корпус.",
+    "Тримай зап'ястя стабільно."
+  ],
+  progression: {
+    type: "metadataOnly",
+    futureMode: "repsThenWeight"
+  },
+  feedbackEnabled: true,
+  active: true
+},
+
+{
+  id: "library-alpha-triceps-extension-8",
+  exerciseId: "overhead-triceps-extension",
+  title: "8 розгинань гантелі на трицепс",
+  description: "Виконай 8 контрольованих розгинань однієї легкої гантелі над головою.",
+  category: "Фізичний розвиток",
+  characteristicImpact: "strength",
+  questType: questTypeDefinitions.repetitions,
+  difficulty: difficultyDefinitions.medium,
+  xpReward: 16,
+  characteristicProgressReward: 2,
+  repeatable: true,
+  cooldown: { type: "day", amount: 1 },
+  requirements: { minimumAvailableTime: 5 },
+  safety: { physical: true, weighted: true },
+  parameters: {
+    reps: 8,
+    minValue: 6,
+    maxValue: 20,
+    step: 1,
+    suggestedWeightKg: 2,
+    maximumEquipmentWeightKg: 15
+  },
+  muscleGroups: {
+    primary: ["трицепс"],
+    secondary: ["плечі", "кор"]
+  },
+  equipment: {
+    type: "dumbbell",
+    count: 1,
+    adjustable: true,
+    maxWeightKg: 15
+  },
+  instructions: [
+    "Тримай одну гантель двома руками над головою.",
+    "Напруж кор.",
+    "Контрольовано зігни лікті.",
+    "Опусти гантель за голову.",
+    "Розігни руки та поверни гантель вгору."
+  ],
+  safetyTips: [
+    "Починай із легкої ваги.",
+    "Не прогинай сильно поперек.",
+    "При дискомфорті у плечах заміни вправу."
+  ],
+  progression: {
+    type: "metadataOnly",
+    futureMode: "repsThenWeight"
+  },
+  feedbackEnabled: true,
+  active: true
+},
+
+{
+  id: "library-alpha-lateral-raise-8",
+  exerciseId: "dumbbell-lateral-raise",
+  title: "8 підйомів гантелей у сторони",
+  description: "Виконай 8 контрольованих підйомів легких гантелей у сторони.",
+  category: "Фізичний розвиток",
+  characteristicImpact: "strength",
+  questType: questTypeDefinitions.repetitions,
+  difficulty: difficultyDefinitions.medium,
+  xpReward: 16,
+  characteristicProgressReward: 2,
+  repeatable: true,
+  cooldown: { type: "day", amount: 1 },
+  requirements: { minimumAvailableTime: 5 },
+  safety: { physical: true, weighted: true },
+  parameters: {
+    reps: 8,
+    minValue: 6,
+    maxValue: 20,
+    step: 1,
+    suggestedWeightPerDumbbellKg: 1,
+    maximumRecommendedWeightPerDumbbellKg: 8
+  },
+  muscleGroups: {
+    primary: ["плечі"],
+    secondary: ["верхня частина спини"]
+  },
+  equipment: {
+    type: "dumbbells",
+    count: 2,
+    adjustable: true,
+    maxWeightPerDumbbellKg: 15
+  },
+  instructions: [
+    "Стань рівно.",
+    "Трохи зігни лікті.",
+    "Плавно піднімай руки в сторони.",
+    "Зупинися приблизно на рівні плечей або трохи нижче.",
+    "Повільно опусти гантелі."
+  ],
+  safetyTips: [
+    "Використовуй невелику вагу.",
+    "Не підкидай гантелі ривком.",
+    "Не піднімай плечі до вух."
+  ],
+  progression: {
+    type: "metadataOnly",
+    futureMode: "repsThenWeight"
+  },
+  feedbackEnabled: true,
+  active: true
+},
+
+{
+  id: "library-alpha-farmer-carry-45s",
+  exerciseId: "farmer-carry",
+  title: "Фермерська хода 45 секунд",
+  description: "Пройди 45 секунд із двома легкими гантелями.",
+  category: "Витривалість",
+  characteristicImpact: "endurance",
+  questType: questTypeDefinitions.duration,
+  difficulty: difficultyDefinitions.medium,
+  xpReward: 18,
+  characteristicProgressReward: 3,
+  repeatable: true,
+  cooldown: { type: "day", amount: 1 },
+  requirements: { minimumAvailableTime: 3 },
+  safety: { physical: true, weighted: true },
+  parameters: {
+    durationSeconds: 45,
+    minValue: 20,
+    maxValue: 180,
+    step: 10,
+    suggestedWeightPerDumbbellKg: 4,
+    maximumEquipmentWeightPerDumbbellKg: 15
+  },
+  muscleGroups: {
+    primary: ["передпліччя", "кор"],
+    secondary: ["плечі", "верхня частина спини", "ноги"]
+  },
+  equipment: {
+    type: "dumbbells",
+    count: 2,
+    adjustable: true,
+    maxWeightPerDumbbellKg: 15
+  },
+  instructions: [
+    "Візьми по гантелі в кожну руку.",
+    "Стань рівно.",
+    "Опусти плечі.",
+    "Напруж кор.",
+    "Йди контрольованими кроками.",
+    "Тримай гантелі стабільно біля боків."
+  ],
+  safetyTips: [
+    "Шлях повинен бути вільним.",
+    "Не біжи.",
+    "Не використовуй вагу, яка змушує сильно нахилятися."
+  ],
+  progression: {
+    type: "metadataOnly",
+    futureMode: "durationThenWeight"
+  },
+  feedbackEnabled: true,
+  active: true
+},
+
+{
+  id: "library-alpha-fast-walk-10min",
+  exerciseId: "fast-walk",
+  title: "Швидка ходьба 10 хвилин",
+  description: "Пройди 10 хвилин у помірно швидкому темпі.",
+  category: "Витривалість",
+  characteristicImpact: "endurance",
+  questType: questTypeDefinitions.duration,
+  difficulty: difficultyDefinitions.easy,
+  xpReward: 20,
+  characteristicProgressReward: 3,
+  repeatable: true,
+  cooldown: { type: "day", amount: 1 },
+  requirements: { minimumAvailableTime: 10 },
+  safety: { physical: true, lowImpact: true },
+  parameters: {
+    durationSeconds: 600,
+    minValue: 300,
+    maxValue: 3600,
+    step: 300
+  },
+  muscleGroups: {
+    primary: ["ноги", "серцево-судинна витривалість"],
+    secondary: ["сідниці", "кор"]
+  },
+  equipment: { type: "none" },
+  instructions: [
+    "Обери безпечний маршрут.",
+    "Почни з комфортного темпу.",
+    "Поступово прискорся.",
+    "Зберігай рівну поставу.",
+    "Тримай темп, при якому дихання стає активнішим, але рух залишається контрольованим."
+  ],
+  safetyTips: [
+    "Уникай небезпечних ділянок дороги.",
+    "Зменш темп при запамороченні, болю або незвичній задишці."
+  ],
+  progression: {
+    type: "duration",
+    increaseAfterEasyFeedback: 300,
+    decreaseAfterHardFeedback: 300
+  },
+  feedbackEnabled: true,
+  active: true
+},
+
+{
+  id: "library-alpha-walk-2000m",
+  exerciseId: "walk",
+  title: "Пішохідна дистанція 2 км",
+  description: "Пройди 2 кілометри у комфортному темпі.",
+  category: "Витривалість",
+  characteristicImpact: "endurance",
+  questType: questTypeDefinitions.distance,
+  difficulty: difficultyDefinitions.easy,
+  xpReward: 22,
+  characteristicProgressReward: 3,
+  repeatable: true,
+  cooldown: { type: "day", amount: 1 },
+  requirements: { minimumAvailableTime: 20 },
+  safety: { physical: true, lowImpact: true },
+  parameters: {
+    distanceMeters: 2000,
+    minValue: 500,
+    maxValue: 10000,
+    step: 500
+  },
+  muscleGroups: {
+    primary: ["ноги", "серцево-судинна витривалість"],
+    secondary: ["сідниці", "кор"]
+  },
+  equipment: { type: "none" },
+  instructions: [
+    "Обери безпечний маршрут.",
+    "Йди у комфортному темпі.",
+    "Тримай природну поставу.",
+    "За потреби роби короткі паузи."
+  ],
+  safetyTips: [
+    "Враховуй погоду та стан маршруту.",
+    "Не продовжуй через біль або сильне погіршення самопочуття."
+  ],
+  progression: {
+    type: "distance",
+    increaseAfterEasyFeedback: 500,
+    decreaseAfterHardFeedback: 500
+  },
+  feedbackEnabled: true,
+  active: true
+},
+
+{
+  id: "library-alpha-mobility-5min",
+  exerciseId: "mobility",
+  title: "Мобільність 5 хвилин",
+  description: "Виконай 5 хвилин спокійних рухів для основних суглобів.",
+  category: "Витривалість",
+  characteristicImpact: "endurance",
+  questType: questTypeDefinitions.duration,
+  difficulty: difficultyDefinitions.easy,
+  xpReward: 10,
+  characteristicProgressReward: 1,
+  repeatable: true,
+  cooldown: { type: "day", amount: 1 },
+  requirements: { minimumAvailableTime: 5 },
+  safety: { physical: true, lowImpact: true },
+  parameters: {
+    durationSeconds: 300,
+    minValue: 180,
+    maxValue: 900,
+    step: 60
+  },
+  muscleGroups: {
+    primary: ["все тіло"],
+    secondary: []
+  },
+  equipment: { type: "none" },
+  instructions: [
+    "Виконай повільні рухи плечима.",
+    "Додай контрольовані повороти грудного відділу.",
+    "Виконай плавні рухи тазостегновими суглобами.",
+    "Додай легкі рухи колінами та гомілковостопними суглобами.",
+    "Усі рухи виконуй без болю."
+  ],
+  safetyTips: [
+    "Не роби різких рухів.",
+    "Не намагайся збільшувати амплітуду через біль."
+  ],
+  progression: {
+    type: "duration",
+    increaseAfterEasyFeedback: 60,
+    decreaseAfterHardFeedback: 60
+  },
+  feedbackEnabled: true,
+  active: true
+},
+
+{
+  id: "library-alpha-recovery-mobility-8min",
+  exerciseId: "recovery-mobility",
+  title: "Відновлювальна мобільність 8 хвилин",
+  description: "Виконай 8 хвилин легких контрольованих рухів для всього тіла.",
+  category: "Витривалість",
+  characteristicImpact: "endurance",
+  questType: questTypeDefinitions.duration,
+  difficulty: difficultyDefinitions.easy,
+  xpReward: 12,
+  characteristicProgressReward: 1,
+  repeatable: true,
+  cooldown: { type: "day", amount: 1 },
+  requirements: { minimumAvailableTime: 8 },
+  safety: { physical: true, lowImpact: true },
+  parameters: {
+    durationSeconds: 480,
+    minValue: 300,
+    maxValue: 1200,
+    step: 60
+  },
+  muscleGroups: {
+    primary: ["все тіло"],
+    secondary: []
+  },
+  equipment: { type: "none" },
+  instructions: [
+    "Почни з легкої ходьби на місці.",
+    "Виконай плавні рухи плечима й руками.",
+    "Додай повороти грудного відділу.",
+    "Виконай легкі рухи тазом.",
+    "Додай рухи колінами та гомілковостопними суглобами.",
+    "Заверши у спокійному темпі."
+  ],
+  safetyTips: [
+    "Це легкий відновлювальний квест.",
+    "Не виконуй рухи через біль."
+  ],
+  progression: {
+    type: "duration",
+    increaseAfterEasyFeedback: 60,
+    decreaseAfterHardFeedback: 60
+  },
+  feedbackEnabled: true,
+  active: true
+},
+        {
           id: "library-focus-session",
           title: "Сесія зосередження",
           description: "Проведи 15 хвилин без відволікань на одній задачі.",
@@ -1568,6 +2704,23 @@
       ]
     };
 
+    const legacyPhysicalQuestIds = new Set([
+  "library-squats-12",
+  "library-pushups-8",
+  "library-squats-18",
+  "library-plank-30s",
+  "library-squats-8",
+  "library-pushups-12",
+  "library-plank-20s",
+  "library-walk-2000m",
+  "library-mobility-10min"
+]);
+
+questLibrary.quests.forEach((quest) => {
+  if (legacyPhysicalQuestIds.has(quest.id)) {
+    quest.active = false;
+  }
+});
     const libraryQuestOrder = questLibrary.quests.map((quest) => quest.id);
 
     function normalizeQuest(rawQuest) {
@@ -1595,10 +2748,47 @@
         repeatable: Boolean(rawQuest.repeatable),
         cooldown: rawQuest.cooldown && typeof rawQuest.cooldown === "object" ? rawQuest.cooldown : { type: "day", amount: 1 },
         requirements: rawQuest.requirements && typeof rawQuest.requirements === "object" ? rawQuest.requirements : {},
-        safety: rawQuest.safety && typeof rawQuest.safety === "object" ? rawQuest.safety : { generic: true },
-        parameters: rawQuest.parameters && typeof rawQuest.parameters === "object" ? rawQuest.parameters : {},
-        feedbackEnabled: rawQuest.feedbackEnabled !== false,
-        active: rawQuest.active !== false
+        safety: rawQuest.safety && typeof rawQuest.safety === "object"
+  ? rawQuest.safety
+  : { generic: true },
+
+parameters: rawQuest.parameters && typeof rawQuest.parameters === "object"
+  ? rawQuest.parameters
+  : {},
+
+muscleGroups: {
+  primary: Array.isArray(rawQuest.muscleGroups?.primary)
+    ? rawQuest.muscleGroups.primary.filter((item) => typeof item === "string")
+    : [],
+  secondary: Array.isArray(rawQuest.muscleGroups?.secondary)
+    ? rawQuest.muscleGroups.secondary.filter((item) => typeof item === "string")
+    : []
+},
+
+equipment: rawQuest.equipment && typeof rawQuest.equipment === "object"
+  ? rawQuest.equipment
+  : { type: "none" },
+
+instructions: Array.isArray(rawQuest.instructions)
+  ? rawQuest.instructions
+      .filter((item) => typeof item === "string")
+      .map((item) => item.trim())
+      .filter(Boolean)
+  : [],
+
+safetyTips: Array.isArray(rawQuest.safetyTips)
+  ? rawQuest.safetyTips
+      .filter((item) => typeof item === "string")
+      .map((item) => item.trim())
+      .filter(Boolean)
+  : [],
+
+progression: rawQuest.progression && typeof rawQuest.progression === "object"
+  ? rawQuest.progression
+  : {},
+
+feedbackEnabled: rawQuest.feedbackEnabled !== false,
+active: rawQuest.active !== false
       };
     }
 
@@ -2178,6 +3368,19 @@ optionalBatchNumber: 0,
     };
   }
 
+  const questWasAlreadyReplacement =
+  selectionState.replacementHistory.some(
+    (entry) =>
+      entry &&
+      entry.newInstanceId === questId
+  );
+
+if (questWasAlreadyReplacement) {
+  return {
+    success: false,
+    message: "Цей квест уже було замінено один раз у поточному наборі."
+  };
+}
   const currentQuestBaseId = getBaseQuestIdFromInstanceId(questId);
 
 const currentOptionalBaseQuestIds = selectionState.optionalQuestIds.map(
@@ -2739,7 +3942,20 @@ const ids = sourceIds.filter((questId) => {
           }
         });
 
-        item.querySelector(".replace-quest-button")?.addEventListener("click", (event) => {
+        const replaceButton = item.querySelector(".replace-quest-button");
+
+const replacementAlreadyUsed =
+  selectionState.replacementHistory.some(
+    (entry) =>
+      entry &&
+      entry.newInstanceId === questId
+  );
+
+if (replaceButton && replacementAlreadyUsed) {
+  replaceButton.hidden = true;
+}
+
+replaceButton?.addEventListener("click", (event) => {
           event.preventDefault();
           event.stopPropagation();
           const selectionBeforeReplacement = structuredClone(gameState.questSelection);
@@ -2820,10 +4036,190 @@ const ids = sourceIds.filter((questId) => {
     const physicalAlphaCharacteristics = ["strength", "endurance"];
     const fullCharacteristicSet = ["strength", "endurance", "intelligence", "charisma", "practicality"];
     const physicalExerciseDefinitions = {
-      pushups: { id: "pushups", title: "Віджимання", metric: "repetitions", unit: "repetitions", maxValue: 500 },
-      squats: { id: "squats", title: "Присідання", metric: "repetitions", unit: "repetitions", maxValue: 500 },
-      plank: { id: "plank", title: "Планка", metric: "durationSeconds", unit: "seconds", maxValue: 7200 }
-    };
+  pushups: {
+    id: "pushups",
+    title: "Віджимання",
+    metric: "repetitions",
+    unit: "repetitions",
+    maxValue: 500
+  },
+
+  squats: {
+    id: "squats",
+    title: "Присідання",
+    metric: "repetitions",
+    unit: "repetitions",
+    maxValue: 500
+  },
+
+  plank: {
+    id: "plank",
+    title: "Планка",
+    metric: "durationSeconds",
+    unit: "seconds",
+    maxValue: 7200
+  },
+
+  "reverse-lunges": {
+    id: "reverse-lunges",
+    title: "Випади назад",
+    metric: "repetitions",
+    unit: "repetitions",
+    maxValue: 500
+  },
+
+  "glute-bridge": {
+    id: "glute-bridge",
+    title: "Сідничний міст",
+    metric: "repetitions",
+    unit: "repetitions",
+    maxValue: 500
+  },
+
+  "calf-raises": {
+    id: "calf-raises",
+    title: "Підйоми на носки",
+    metric: "repetitions",
+    unit: "repetitions",
+    maxValue: 1000
+  },
+
+  "incline-pushups": {
+    id: "incline-pushups",
+    title: "Віджимання від опори",
+    metric: "repetitions",
+    unit: "repetitions",
+    maxValue: 500
+  },
+
+  "dead-bug": {
+    id: "dead-bug",
+    title: "Dead Bug",
+    metric: "repetitions",
+    unit: "repetitions",
+    maxValue: 500
+  },
+
+  "bird-dog": {
+    id: "bird-dog",
+    title: "Bird Dog",
+    metric: "repetitions",
+    unit: "repetitions",
+    maxValue: 500
+  },
+
+  "goblet-squat": {
+    id: "goblet-squat",
+    title: "Присідання з гантеллю",
+    metric: "repetitions",
+    unit: "repetitions",
+    maxValue: 500
+  },
+
+  "dumbbell-rdl": {
+    id: "dumbbell-rdl",
+    title: "Румунська тяга з гантелями",
+    metric: "repetitions",
+    unit: "repetitions",
+    maxValue: 500
+  },
+
+  "one-arm-dumbbell-row": {
+    id: "one-arm-dumbbell-row",
+    title: "Тяга гантелі однією рукою",
+    metric: "repetitions",
+    unit: "repetitions",
+    maxValue: 500
+  },
+
+  "dumbbell-floor-press": {
+    id: "dumbbell-floor-press",
+    title: "Жим гантелей лежачи",
+    metric: "repetitions",
+    unit: "repetitions",
+    maxValue: 500
+  },
+
+  "dumbbell-overhead-press": {
+    id: "dumbbell-overhead-press",
+    title: "Жим гантелей над головою",
+    metric: "repetitions",
+    unit: "repetitions",
+    maxValue: 500
+  },
+
+  "dumbbell-biceps-curl": {
+    id: "dumbbell-biceps-curl",
+    title: "Згинання рук з гантелями",
+    metric: "repetitions",
+    unit: "repetitions",
+    maxValue: 500
+  },
+
+  "hammer-curl": {
+    id: "hammer-curl",
+    title: "Молоткові згинання",
+    metric: "repetitions",
+    unit: "repetitions",
+    maxValue: 500
+  },
+
+  "overhead-triceps-extension": {
+    id: "overhead-triceps-extension",
+    title: "Розгинання гантелі на трицепс",
+    metric: "repetitions",
+    unit: "repetitions",
+    maxValue: 500
+  },
+
+  "dumbbell-lateral-raise": {
+    id: "dumbbell-lateral-raise",
+    title: "Підйоми гантелей у сторони",
+    metric: "repetitions",
+    unit: "repetitions",
+    maxValue: 500
+  },
+
+  "farmer-carry": {
+    id: "farmer-carry",
+    title: "Фермерська хода",
+    metric: "durationSeconds",
+    unit: "seconds",
+    maxValue: 7200
+  },
+
+  "fast-walk": {
+    id: "fast-walk",
+    title: "Швидка ходьба",
+    metric: "durationSeconds",
+    unit: "seconds",
+    maxValue: 14400
+  },
+
+  walk: {
+    id: "walk",
+    title: "Ходьба",
+    metric: "distanceMeters",
+    unit: "meters",
+    maxValue: 50000
+  },
+
+  mobility: {
+    id: "mobility",
+    title: "Мобільність",
+    metric: "durationSeconds",
+    unit: "seconds",
+    maxValue: 7200
+  },
+
+  "recovery-mobility": {
+    id: "recovery-mobility",
+    title: "Відновлювальна мобільність",
+    metric: "durationSeconds",
+    unit: "seconds",
+    maxValue: 7200
+  }
+};
 
     function getActiveAlphaCharacteristics() {
       return [...physicalAlphaCharacteristics];
@@ -4481,12 +5877,26 @@ const ids = sourceIds.filter((questId) => {
       const parameters = quest.parameters || questDefinition?.parameters || {};
       let value = null;
       if (completionResult && completionResult.exerciseId === exerciseId) {
-        value = Number(completionResult.value);
-      } else if (exerciseId === "plank") {
-        value = Number(parameters.durationSeconds);
-      } else {
-        value = Number(parameters.reps);
-      }
+  value = Number(completionResult.value);
+} else {
+  const definition = getPhysicalExerciseDefinition(exerciseId);
+
+  if (!definition) return false;
+
+  if (definition.metric === "repetitions") {
+    value = Number(parameters.reps);
+  } else if (definition.metric === "durationSeconds") {
+    value = Number(parameters.durationSeconds);
+  } else if (definition.metric === "distanceMeters") {
+    value = Number(
+      parameters.distanceMeters ??
+      parameters.targetDistance ??
+      parameters.distance
+    );
+  } else {
+    return false;
+  }
+}
       if (!Number.isFinite(value) || value <= 0) return false;
       const safeValue = getSafePhysicalActivityValue(exerciseId, value);
       if (safeValue === null) return false;
