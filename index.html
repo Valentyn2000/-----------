@@ -918,7 +918,6 @@
       <p class="section-label" id="daily-cycle-title">СЬОГОДНІ</p>
       <p id="daily-cycle-progress">Виконано 0 / 0 квестів</p>
       <p id="daily-cycle-status" class="system-message" hidden></p>
-      <button id="complete-day-button" class="complete-button" type="button" hidden>ЗАВЕРШИТИ ДЕНЬ</button>
     </section>
 
     <section class="section" aria-labelledby="day-quest-title">
@@ -1309,6 +1308,101 @@
           active: true
         },
         {
+  id: "library-pushups-8",
+  exerciseId: "pushups",
+  title: "8 віджимань",
+  description: "Виконай 8 контрольованих віджимань у комфортному темпі.",
+  category: "Фізичний розвиток",
+  characteristicImpact: "strength",
+  questType: questTypeDefinitions.repetitions,
+  difficulty: difficultyDefinitions.easy,
+  xpReward: 12,
+  characteristicProgressReward: 2,
+  repeatable: true,
+  cooldown: { type: "day", amount: 1 },
+  requirements: { minimumAvailableTime: 5 },
+  safety: { physical: true, lowImpact: true },
+  parameters: { reps: 8, minValue: 1, maxValue: 20, step: 1 },
+  feedbackEnabled: true,
+  active: true
+},
+{
+  id: "library-squats-18",
+  exerciseId: "squats",
+  title: "18 присідань",
+  description: "Плавно виконай 18 присідань без ривків.",
+  category: "Фізичний розвиток",
+  characteristicImpact: "strength",
+  questType: questTypeDefinitions.repetitions,
+  difficulty: difficultyDefinitions.easy,
+  xpReward: 14,
+  characteristicProgressReward: 2,
+  repeatable: true,
+  cooldown: { type: "day", amount: 1 },
+  requirements: { minimumAvailableTime: 5 },
+  safety: { physical: true, lowImpact: true },
+  parameters: { reps: 18, minValue: 1, maxValue: 30, step: 1 },
+  feedbackEnabled: true,
+  active: true
+},
+{
+  id: "library-plank-30s",
+  exerciseId: "plank",
+  title: "Планка 30 секунд",
+  description: "Утримай стабільне положення планки 30 секунд.",
+  category: "Витривалість",
+  characteristicImpact: "endurance",
+  questType: questTypeDefinitions.duration,
+  difficulty: difficultyDefinitions.easy,
+  xpReward: 16,
+  characteristicProgressReward: 2,
+  repeatable: true,
+  cooldown: { type: "day", amount: 1 },
+  requirements: { minimumAvailableTime: 2 },
+  safety: { physical: true, lowImpact: true },
+  parameters: { durationSeconds: 30 },
+  feedbackEnabled: true,
+  active: true
+},
+{
+  id: "library-squats-8",
+  exerciseId: "squats",
+  title: "8 присідань",
+  description: "Плавно виконай 8 присідань у комфортному темпі.",
+  category: "Фізичний розвиток",
+  characteristicImpact: "strength",
+  questType: questTypeDefinitions.repetitions,
+  difficulty: difficultyDefinitions.easy,
+  xpReward: 10,
+  characteristicProgressReward: 2,
+  repeatable: true,
+  cooldown: { type: "day", amount: 1 },
+  requirements: { minimumAvailableTime: 5 },
+  safety: { physical: true, lowImpact: true },
+  parameters: { reps: 8, minValue: 1, maxValue: 20, step: 1 },
+  feedbackEnabled: true,
+  active: true
+},
+{
+  id: "library-pushups-12",
+  exerciseId: "pushups",
+  title: "12 віджимань",
+  description: "Виконай 12 контрольованих віджимань у комфортному темпі.",
+  category: "Фізичний розвиток",
+  characteristicImpact: "strength",
+  questType: questTypeDefinitions.repetitions,
+  difficulty: difficultyDefinitions.easy,
+  xpReward: 15,
+  characteristicProgressReward: 2,
+  repeatable: true,
+  cooldown: { type: "day", amount: 1 },
+  requirements: { minimumAvailableTime: 5 },
+  safety: { physical: true, lowImpact: true },
+  parameters: { reps: 12, minValue: 1, maxValue: 25, step: 1 },
+  feedbackEnabled: true,
+  active: true
+},
+        {
           id: "library-plank-20s",
           exerciseId: "plank",
           title: "Планка 20 секунд",
@@ -1546,7 +1640,10 @@ optionalBatchNumber: Number.isInteger(safeSelection.optionalBatchNumber)
           .map((item) => String(item).trim().toLowerCase())
           .filter(Boolean))];
       };
-      const availableTimeMinutes = Number(safeContext.availableTimeMinutes);
+      const availableTimeMinutes =
+  safeContext.availableTimeMinutes === null || safeContext.availableTimeMinutes === ""
+    ? null
+    : Number(safeContext.availableTimeMinutes);
       const pausedCharacteristics = {
         strength: safeContext.pausedCharacteristics?.strength === true,
         endurance: safeContext.pausedCharacteristics?.endurance === true,
@@ -1690,14 +1787,25 @@ optionalBatchNumber: Number.isInteger(safeSelection.optionalBatchNumber)
       return parameters;
     }
 
-    function createQuestInstance(quest) {
-      return {
-        ...quest,
-        difficulty: getAdaptiveDifficulty(quest.characteristicImpact, quest.difficulty),
-        parameters: adaptQuestParameters(quest),
-        feedbackSubmitted: false
-      };
-    }
+    function createQuestInstance(quest, instanceId = quest.id) {
+  return {
+    ...quest,
+    id: instanceId,
+    baseQuestId: quest.id,
+    difficulty: getAdaptiveDifficulty(
+      quest.characteristicImpact,
+      quest.difficulty
+    ),
+    parameters: adaptQuestParameters(quest),
+    feedbackSubmitted: false
+  };
+}
+function createOptionalQuestInstanceId(baseQuestId, batchNumber, position) {
+  return `${baseQuestId}__${getTodayKey()}__batch${batchNumber}__${position}`;
+}
+function getBaseQuestIdFromInstanceId(questId) {
+  return String(questId).split("__")[0];
+}
 
     function ensureQuestInstances(ids) {
       if (!gameState.questSelection.instances || typeof gameState.questSelection.instances !== "object") gameState.questSelection.instances = {};
@@ -1710,13 +1818,35 @@ optionalBatchNumber: Number.isInteger(safeSelection.optionalBatchNumber)
     }
 
     function getQuestInstance(questId) {
-      const baseQuest = getQuestLibrary().find((candidate) => candidate.id === questId);
-      if (!baseQuest) return null;
-      const hadInstance = Boolean(gameState.questSelection.instances?.[questId]);
-      ensureQuestInstances([questId]);
-      if (!hadInstance) saveGameState();
-      return gameState.questSelection.instances[questId] || baseQuest;
-    }
+  const existingInstance = gameState.questSelection.instances?.[questId];
+
+  if (existingInstance) {
+    return existingInstance;
+  }
+
+  const baseQuestId = String(questId).split("__")[0];
+
+  const baseQuest = getQuestLibrary().find(
+    (candidate) => candidate.id === baseQuestId
+  );
+
+  if (!baseQuest) return null;
+
+  if (
+    !gameState.questSelection.instances ||
+    typeof gameState.questSelection.instances !== "object"
+  ) {
+    gameState.questSelection.instances = {};
+  }
+
+  const newInstance = createQuestInstance(baseQuest, questId);
+
+  gameState.questSelection.instances[questId] = newInstance;
+
+  saveGameState();
+
+  return newInstance;
+}
 
     function scoreQuestForRecommendation(quest, selectedIds, recentSelections) {
       let score = 0;
@@ -1808,11 +1938,19 @@ optionalBatchNumber: Number.isInteger(safeSelection.optionalBatchNumber)
     : [];
   const playerContext = getPlayerContext();
 
-  const excludedIds = new Set([
-    ...selectionState.selectedQuestIds,
-    ...selectionState.optionalQuestIds,
-    ...excludedQuestIds
-  ]);
+  const optionalBaseQuestIds = selectionState.optionalQuestIds
+  .filter((questId) => !gameState.completedQuests.includes(questId))
+  .map((questId) => getBaseQuestIdFromInstanceId(questId));
+
+const excludedBaseQuestIds = excludedQuestIds.map((questId) =>
+  getBaseQuestIdFromInstanceId(questId)
+);
+
+const excludedIds = new Set([
+  ...selectionState.selectedQuestIds,
+  ...optionalBaseQuestIds,
+  ...excludedBaseQuestIds
+]);
 
   const candidates = library.filter((quest) => {
     if (!quest.active) return false;
@@ -1877,19 +2015,36 @@ optionalBatchNumber: 0,
     selectionState = normalizeQuestSelectionState(gameState.questSelection);
   }
 
-  const optionalSelection = generateOptionalQuestSelection();
+  const baseQuestIds = generateOptionalQuestSelection();
+  const batchNumber = selectionState.optionalBatchNumber + 1;
+
+  const optionalSelection = baseQuestIds.map((baseQuestId, index) =>
+    createOptionalQuestInstanceId(
+      baseQuestId,
+      batchNumber,
+      index + 1
+    )
+  );
 
   const optionalInstances = Object.fromEntries(
-    optionalSelection.map((questId) => {
-      const quest = getQuestLibrary().find((candidate) => candidate.id === questId);
-      return [questId, quest ? createQuestInstance(quest) : null];
+    optionalSelection.map((instanceId, index) => {
+      const baseQuestId = baseQuestIds[index];
+
+      const quest = getQuestLibrary().find(
+        (candidate) => candidate.id === baseQuestId
+      );
+
+      return [
+        instanceId,
+        quest ? createQuestInstance(quest, instanceId) : null
+      ];
     }).filter((entry) => entry[1])
   );
 
   gameState.questSelection = {
     ...selectionState,
     optionalQuestIds: optionalSelection,
-    optionalBatchNumber: selectionState.optionalBatchNumber + 1,
+    optionalBatchNumber: batchNumber,
     instances: {
       ...selectionState.instances,
       ...optionalInstances
@@ -1897,6 +2052,7 @@ optionalBatchNumber: 0,
   };
 
   saveGameState();
+
   return optionalSelection;
 }
 
@@ -2011,6 +2167,100 @@ optionalBatchNumber: 0,
       renderRecommendedQuests();
       return { success: true, replacementId: replacementQuest.id, message: "Квест успішно замінено." };
     }
+    function replaceOptionalQuestInSelection(questId) {
+  const selectionState = normalizeQuestSelectionState(gameState.questSelection);
+  const index = selectionState.optionalQuestIds.indexOf(questId);
+
+  if (index === -1) {
+    return {
+      success: false,
+      message: "Квест не знайдено в поточному додатковому наборі."
+    };
+  }
+
+  const candidatePool = getQuestLibrary().filter((candidate) => {
+    if (!candidate.active) return false;
+    if (candidate.id === questId) return false;
+
+    if (
+      isPhysicalAlphaEnabled() &&
+      !isQuestAllowedInPhysicalAlpha(candidate)
+    ) {
+      return false;
+    }
+
+    if (selectionState.selectedQuestIds.includes(candidate.id)) return false;
+    if (selectionState.optionalQuestIds.includes(candidate.id)) return false;
+    if (gameState.completedQuests.includes(candidate.id)) return false;
+    if (isQuestInCooldown(candidate, selectionState.recentSelections)) return false;
+    if (!matchesBaseRequirements(candidate, getPlayerContext())) return false;
+
+    const previousReplacement =
+      selectionState.replacementHistory[
+        selectionState.replacementHistory.length - 1
+      ];
+
+    if (
+      previousReplacement &&
+      previousReplacement.newQuestId === candidate.id
+    ) {
+      return false;
+    }
+
+    return true;
+  });
+
+  const sortedCandidates = candidatePool
+    .map((candidate) => ({
+      candidate,
+      score: scoreQuestForRecommendation(
+        candidate,
+        [
+          ...selectionState.selectedQuestIds,
+          ...selectionState.optionalQuestIds.filter(
+            (optionalQuestId) => optionalQuestId !== questId
+          )
+        ],
+        selectionState.recentSelections
+      )
+    }))
+    .sort((first, second) => first.score - second.score)
+    .map((entry) => entry.candidate);
+
+  const replacementQuest = sortedCandidates[0];
+
+  if (!replacementQuest) {
+    return {
+      success: false,
+      message: "Наразі немає іншого придатного додаткового квесту."
+    };
+  }
+
+  const updatedOptionalQuestIds = [...selectionState.optionalQuestIds];
+  updatedOptionalQuestIds.splice(index, 1, replacementQuest.id);
+
+  gameState.questSelection = {
+    ...selectionState,
+    optionalQuestIds: updatedOptionalQuestIds,
+    replacementHistory: [
+      ...selectionState.replacementHistory,
+      {
+        oldQuestId: questId,
+        newQuestId: replacementQuest.id,
+        timestamp: new Date().toISOString()
+      }
+    ].slice(-50)
+  };
+
+  ensureQuestInstances([replacementQuest.id]);
+  saveGameState();
+
+  return {
+    success: true,
+    replacementId: replacementQuest.id,
+    message: "Додатковий квест успішно замінено."
+  };
+}
 
     function loadQuestTimerStates() {
   const saved = localStorage.getItem(questTimerStorageKey);
@@ -2123,6 +2373,15 @@ if (
   selectionState.optionalQuestIds.length === 0
 ) {
   syncOptionalQuestSelection();
+  renderRecommendedQuests();
+} else if (
+  selectionState.optionalQuestIds.length === optionalQuestBatchLimit &&
+  selectionState.optionalQuestIds.every((optionalQuestId) =>
+    gameState.completedQuests.includes(optionalQuestId)
+  )
+) {
+  syncOptionalQuestSelection();
+  renderRecommendedQuests();
 }
       saveGameState();
       updateGameStateView();
@@ -2343,12 +2602,21 @@ stopActiveQuestTimer(quest.id);
 
       renderPlayerContextControls();
 
-      const selectionState = normalizeQuestSelectionState(gameState.questSelection);
+      let selectionState = normalizeQuestSelectionState(gameState.questSelection);
 const requiredIds = getSelectedRecommendedQuestIds();
 
 const requiredQuestsCompleted =
   requiredIds.length === requiredDailyQuestLimit &&
   requiredIds.every((questId) => gameState.completedQuests.includes(questId));
+
+if (
+  requiredQuestsCompleted &&
+  selectionState.optionalQuestIds.length === 0 &&
+  gameState.dailyState.status !== "completed"
+) {
+  syncOptionalQuestSelection();
+  selectionState = normalizeQuestSelectionState(gameState.questSelection);
+}
 
 const isOptionalBatch =
   requiredQuestsCompleted &&
@@ -2359,8 +2627,16 @@ const sourceIds = isOptionalBatch
   : requiredIds;
 
 const ids = sourceIds.filter((questId) => {
-  const quest = getQuestLibrary().find((candidate) => candidate.id === questId);
-  return !isPhysicalAlphaEnabled() || (quest && isQuestAllowedInPhysicalAlpha(quest));
+  const baseQuestId = String(questId).split("__")[0];
+
+  const quest = getQuestLibrary().find(
+    (candidate) => candidate.id === baseQuestId
+  );
+
+  return (
+    !isPhysicalAlphaEnabled() ||
+    (quest && isQuestAllowedInPhysicalAlpha(quest))
+  );
 });
       const recommendationSection = document.createElement("section");
       recommendationSection.className = "section";
@@ -2442,7 +2718,7 @@ const ids = sourceIds.filter((questId) => {
           const selectionBeforeReplacement = structuredClone(gameState.questSelection);
           const dailyStateBeforeReplacement = structuredClone(gameState.dailyState);
           const completedQuestsBeforeReplacement = [...gameState.completedQuests];
-          const result = replaceQuestInSelection(questId);
+          const result = replaceOptionalQuestInSelection(questId);
           if (!result.success) {
             gameState.questSelection = selectionBeforeReplacement;
             gameState.dailyState = dailyStateBeforeReplacement;
@@ -2605,7 +2881,8 @@ const ids = sourceIds.filter((questId) => {
         status: "active",
         completedAt: null,
         generatedQuestIds: [],
-        completedQuestIds: []
+        completedQuestIds: [],
+        completedQuestIdsInitialized: true
       },
       dailyHistory: [],
       level: 1,
@@ -2799,12 +3076,6 @@ const ids = sourceIds.filter((questId) => {
         if (activitySection) characterScreenApp.appendChild(activitySection);
       }
 
-      document.getElementById("complete-day-button")?.addEventListener("click", () => {
-        if (completeDailyCycle()) {
-          const status = document.getElementById("daily-cycle-status");
-          if (status) status.textContent = "ДЕНЬ ЗАВЕРШЕНО";
-        }
-      });
 
       appShell.classList.add("ready");
     }
@@ -2828,7 +3099,8 @@ const ids = sourceIds.filter((questId) => {
   status: "active",
   completedAt: null,
   generatedQuestIds: [...selectedIds],
-  completedQuestIds: []
+  completedQuestIds: [],
+  completedQuestIdsInitialized: true
 };
         saveGameState();
         return selectedIds;
@@ -2866,24 +3138,31 @@ const ids = sourceIds.filter((questId) => {
     }
 
     function updateDailyCycleView() {
-      const progress = document.getElementById("daily-cycle-progress");
-      const status = document.getElementById("daily-cycle-status");
-      const completeButton = document.getElementById("complete-day-button");
-      if (!progress || !status || !completeButton || gameState.awakening.status !== "completed") return;
-      const questIds = ensureDailyCycle();
-      const completedCount = questIds.filter((questId) => gameState.completedQuests.includes(questId)).length;
-      const totalCount = questIds.length;
-      const todayCompletedCount = Array.isArray(gameState.dailyState.completedQuestIds)
-  ? gameState.dailyState.completedQuestIds.length
-  : 0;
+  const progress = document.getElementById("daily-cycle-progress");
+  const status = document.getElementById("daily-cycle-status");
 
-progress.textContent = `Сьогодні виконано квестів: ${todayCompletedCount}`;
-      const isComplete = gameState.dailyState.status === "completed";
-      status.hidden = !isComplete;
-      status.textContent = isComplete ? "Сьогоднішній шлях завершено." : "";
-      completeButton.hidden = isComplete || completedCount !== totalCount || totalCount === 0;
-      completeButton.disabled = isComplete || completedCount !== totalCount || totalCount === 0;
-    }
+  if (
+    !progress ||
+    !status ||
+    gameState.awakening.status !== "completed"
+  ) {
+    return;
+  }
+
+  ensureDailyCycle();
+
+  const todayCompletedCount = Array.isArray(
+    gameState.dailyState.completedQuestIds
+  )
+    ? gameState.dailyState.completedQuestIds.length
+    : 0;
+
+  progress.textContent =
+    `Сьогодні виконано квестів: ${todayCompletedCount}`;
+
+  status.hidden = true;
+  status.textContent = "";
+}
 
     function completeDailyCycle() {
       const questIds = ensureDailyCycle();
@@ -4058,17 +4337,70 @@ progress.textContent = `Сьогодні виконано квестів: ${toda
     }
 
     function completeDayIfReady() {
-      if (isPhysicalAlphaEnabled()) return;
-      const dayQuestIds = [...document.querySelectorAll(".day-quest")].map((quest) => quest.dataset.questId);
-      const allDayQuestsCompleted = dayQuestIds.every((questId) => gameState.completedQuests.includes(questId));
-      const completionDate = new Date().toISOString().slice(0, 10);
+  if (isPhysicalAlphaEnabled()) {
+    const selectionState = normalizeQuestSelectionState(gameState.questSelection);
+    const todayKey = getTodayKey();
 
-      if (allDayQuestsCompleted && !gameState.completedDays.includes(completionDate)) {
-        gameState.streak += 1;
-        gameState.completedDays.push(completionDate);
-        saveGameState();
-      }
+    if (selectionState.dateKey !== todayKey) return;
+
+    const requiredQuestIds =
+      selectionState.selectedQuestIds.slice(0, requiredDailyQuestLimit);
+
+    const requiredQuestsCompleted =
+      requiredQuestIds.length === requiredDailyQuestLimit &&
+      requiredQuestIds.every((questId) =>
+        gameState.completedQuests.includes(questId)
+      );
+
+    if (!requiredQuestsCompleted) return;
+
+    if (!Array.isArray(gameState.completedDays)) {
+      gameState.completedDays = [];
     }
+
+    if (!gameState.completedDays.includes(todayKey)) {
+      gameState.completedDays.push(todayKey);
+      gameState.streak += 1;
+
+      if (!Array.isArray(gameState.dailyHistory)) {
+        gameState.dailyHistory = [];
+      }
+
+      if (!gameState.dailyHistory.some((entry) => entry.dateKey === todayKey)) {
+        gameState.dailyHistory.push({
+          dateKey: todayKey,
+          completedQuestIds: [...requiredQuestIds],
+          totalQuestCount: requiredQuestIds.length,
+          completedAt: new Date().toISOString()
+        });
+      }
+
+      saveGameState();
+    }
+
+    return;
+  }
+
+  const dayQuestIds = [...document.querySelectorAll(".day-quest")]
+    .map((quest) => quest.dataset.questId);
+
+  const allDayQuestsCompleted =
+    dayQuestIds.length > 0 &&
+    dayQuestIds.every((questId) =>
+      gameState.completedQuests.includes(questId)
+    );
+
+  const completionDate = new Date().toISOString().slice(0, 10);
+
+  if (
+    allDayQuestsCompleted &&
+    !gameState.completedDays.includes(completionDate)
+  ) {
+    gameState.streak += 1;
+    gameState.completedDays.push(completionDate);
+    saveGameState();
+  }
+}
 
     awakeningButton.addEventListener("click", () => {
       if (gameState.awakening.status === "completed") return;
