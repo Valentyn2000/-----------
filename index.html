@@ -2178,9 +2178,14 @@ optionalBatchNumber: 0,
     };
   }
 
+  const currentQuestBaseId = getBaseQuestIdFromInstanceId(questId);
+
+const currentOptionalBaseQuestIds = selectionState.optionalQuestIds.map(
+  (optionalQuestId) => getBaseQuestIdFromInstanceId(optionalQuestId)
+);
   const candidatePool = getQuestLibrary().filter((candidate) => {
     if (!candidate.active) return false;
-    if (candidate.id === questId) return false;
+    if (candidate.id === currentQuestBaseId) return false;
 
     if (
       isPhysicalAlphaEnabled() &&
@@ -2190,8 +2195,13 @@ optionalBatchNumber: 0,
     }
 
     if (selectionState.selectedQuestIds.includes(candidate.id)) return false;
-    if (selectionState.optionalQuestIds.includes(candidate.id)) return false;
-    if (gameState.completedQuests.includes(candidate.id)) return false;
+    if (currentOptionalBaseQuestIds.includes(candidate.id)) return false;
+    if (
+  candidate.repeatable === false &&
+  gameState.completedQuests.includes(candidate.id)
+) {
+  return false;
+}
     if (isQuestInCooldown(candidate, selectionState.recentSelections)) return false;
     if (!matchesBaseRequirements(candidate, getPlayerContext())) return false;
 
@@ -2236,24 +2246,41 @@ optionalBatchNumber: 0,
     };
   }
 
-  const updatedOptionalQuestIds = [...selectionState.optionalQuestIds];
-  updatedOptionalQuestIds.splice(index, 1, replacementQuest.id);
+  const replacementInstanceId =
+  `${createOptionalQuestInstanceId(
+    replacementQuest.id,
+    selectionState.optionalBatchNumber,
+    index + 1
+  )}__replacement${Date.now()}`;
 
-  gameState.questSelection = {
-    ...selectionState,
-    optionalQuestIds: updatedOptionalQuestIds,
-    replacementHistory: [
-      ...selectionState.replacementHistory,
-      {
-        oldQuestId: questId,
-        newQuestId: replacementQuest.id,
-        timestamp: new Date().toISOString()
-      }
-    ].slice(-50)
-  };
+const updatedOptionalQuestIds = [...selectionState.optionalQuestIds];
+updatedOptionalQuestIds.splice(index, 1, replacementInstanceId);
 
-  ensureQuestInstances([replacementQuest.id]);
-  saveGameState();
+const replacementInstance = createQuestInstance(
+  replacementQuest,
+  replacementInstanceId
+);
+
+gameState.questSelection = {
+  ...selectionState,
+  optionalQuestIds: updatedOptionalQuestIds,
+  instances: {
+    ...selectionState.instances,
+    [replacementInstanceId]: replacementInstance
+  },
+  replacementHistory: [
+    ...selectionState.replacementHistory,
+    {
+      oldQuestId: questId,
+      newQuestId: replacementQuest.id,
+      newInstanceId: replacementInstanceId,
+      timestamp: new Date().toISOString()
+    }
+  ].slice(-50)
+};
+
+saveGameState();
+renderRecommendedQuests();
 
   return {
     success: true,
