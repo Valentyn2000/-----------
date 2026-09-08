@@ -5074,16 +5074,32 @@ replaceButton?.addEventListener("click", (event) => {
     }
 
     function getPhysicalActivityTotals(days) {
-      const totals = { pushups: 0, squats: 0, plank: 0 };
-      const entries = getFilteredPhysicalActivityEntries(days);
-      entries.forEach((entry) => {
-        if (!entry || !getPhysicalExerciseDefinition(entry.exerciseId)) return;
-        const allowed = ["pushups", "squats", "plank"];
-        if (!allowed.includes(entry.exerciseId)) return;
-        totals[entry.exerciseId] += Number(entry.value) || 0;
-      });
-      return totals;
+  const totals = {};
+
+  Object.keys(physicalExerciseDefinitions).forEach((exerciseId) => {
+    totals[exerciseId] = 0;
+  });
+
+  const entries = getFilteredPhysicalActivityEntries(days);
+
+  entries.forEach((entry) => {
+    if (!entry) return;
+
+    const definition = getPhysicalExerciseDefinition(entry.exerciseId);
+    if (!definition) return;
+
+    if (!Object.prototype.hasOwnProperty.call(totals, entry.exerciseId)) {
+      totals[entry.exerciseId] = 0;
     }
+
+    const value = Number(entry.value);
+    if (!Number.isFinite(value) || value <= 0) return;
+
+    totals[entry.exerciseId] += value;
+  });
+
+  return totals;
+}
 
     let physicalActivityPeriodState = { activePeriod: 0 };
 
@@ -5100,19 +5116,12 @@ replaceButton?.addEventListener("click", (event) => {
             <button class="physical-activity-period" type="button" data-activity-period="7">7 ДНІВ</button>
             <button class="physical-activity-period" type="button" data-activity-period="30">30 ДНІВ</button>
           </div>
-          <div class="physical-activity-summary" style="display:grid; gap:8px; margin-bottom:12px;">
-            <div class="stat"><div class="stat-copy"><span class="stat-name">Віджимання</span><p class="stat-progress">0 повторень</p></div><strong class="stat-value" data-activity-total="pushups">0</strong></div>
-            <div class="stat"><div class="stat-copy"><span class="stat-name">Присідання</span><p class="stat-progress">0 повторень</p></div><strong class="stat-value" data-activity-total="squats">0</strong></div>
-            <div class="stat"><div class="stat-copy"><span class="stat-name">Планка</span><p class="stat-progress">0 с</p></div><strong class="stat-value" data-activity-total="plank">0</strong></div>
-          </div>
+          <div class="physical-activity-summary" style="display:grid; gap:8px; margin-bottom:12px;"></div>
           <button id="add-physical-activity-button" class="complete-button" type="button" style="width:100%; margin-bottom:12px;">+ ДОДАТИ АКТИВНІСТЬ</button>
           <form id="physical-activity-form" hidden style="display:grid; gap:8px; padding:12px; border:1px solid var(--line); background:rgba(17,24,23,.78);">
             <label style="display:grid; gap:6px; font-size:11px; color:var(--muted);">
               Вправа
               <select id="physical-activity-exercise" style="min-height:38px; background:#0b100f; color:var(--text); border:1px solid var(--line); font:inherit;">
-                <option value="pushups">Віджимання</option>
-                <option value="squats">Присідання</option>
-                <option value="plank">Планка</option>
               </select>
             </label>
             <label style="display:grid; gap:6px; font-size:11px; color:var(--muted);">
@@ -5129,6 +5138,18 @@ replaceButton?.addEventListener("click", (event) => {
       sectionNode.dataset.period = String(physicalActivityPeriodState.activePeriod || 0);
       const addButton = sectionNode.querySelector("#add-physical-activity-button");
       const form = sectionNode.querySelector("#physical-activity-form");
+      const exerciseSelect = sectionNode.querySelector("#physical-activity-exercise");
+
+if (exerciseSelect) {
+  exerciseSelect.innerHTML = "";
+
+  Object.values(physicalExerciseDefinitions).forEach((definition) => {
+    const option = document.createElement("option");
+    option.value = definition.id;
+    option.textContent = definition.title;
+    exerciseSelect.appendChild(option);
+  });
+}
       addButton.addEventListener("click", () => {
         form.hidden = !form.hidden;
       });
@@ -5171,24 +5192,99 @@ replaceButton?.addEventListener("click", (event) => {
     }
 
     function updatePhysicalActivityView() {
-      const section = document.getElementById("physical-activity-section");
-      if (!section) return;
-      const period = Number(section.dataset.period || physicalActivityPeriodState.activePeriod || 0);
-      physicalActivityPeriodState.activePeriod = period;
-      section.dataset.period = String(period);
-      const totals = getPhysicalActivityTotals(period === 0 ? 1 : period);
-      section.querySelector('[data-activity-total="pushups"]').textContent = totals.pushups;
-      section.querySelector('[data-activity-total="squats"]').textContent = totals.squats;
-      section.querySelector('[data-activity-total="plank"]').textContent = formatPhysicalDuration(totals.plank);
-      section.querySelectorAll(".physical-activity-period").forEach((button) => {
-        const periodValue = Number(button.dataset.activityPeriod || 0);
-        button.classList.toggle("active", periodValue === period);
-      });
-      const summaryCopy = section.querySelectorAll(".stat-progress");
-      summaryCopy[0].textContent = `${totals.pushups} повторень`;
-      summaryCopy[1].textContent = `${totals.squats} повторень`;
-      summaryCopy[2].textContent = `${formatPhysicalDuration(totals.plank)}`;
+  const section = document.getElementById("physical-activity-section");
+  if (!section) return;
+
+  const period = Number(
+    section.dataset.period ||
+    physicalActivityPeriodState.activePeriod ||
+    0
+  );
+
+  physicalActivityPeriodState.activePeriod = period;
+  section.dataset.period = String(period);
+
+  const totals = getPhysicalActivityTotals(period === 0 ? 1 : period);
+
+  section.querySelectorAll(".physical-activity-period").forEach((button) => {
+    const periodValue = Number(button.dataset.activityPeriod || 0);
+    button.classList.toggle("active", periodValue === period);
+  });
+
+  const summary = section.querySelector(".physical-activity-summary");
+  if (!summary) return;
+
+  summary.innerHTML = "";
+
+  const completedExercises = Object.entries(totals)
+    .filter(([exerciseId, total]) => {
+      return (
+        getPhysicalExerciseDefinition(exerciseId) &&
+        Number.isFinite(Number(total)) &&
+        Number(total) > 0
+      );
+    });
+
+  if (completedExercises.length === 0) {
+    const emptyMessage = document.createElement("div");
+    emptyMessage.className = "stat";
+
+    const copy = document.createElement("div");
+    copy.className = "stat-copy";
+
+    const name = document.createElement("span");
+    name.className = "stat-name";
+    name.textContent = "Поки немає фізичної активності";
+
+    const progress = document.createElement("p");
+    progress.className = "stat-progress";
+    progress.textContent = "Виконай фізичний квест";
+
+    copy.append(name, progress);
+    emptyMessage.appendChild(copy);
+    summary.appendChild(emptyMessage);
+
+    return;
+  }
+
+  completedExercises.forEach(([exerciseId, total]) => {
+    const definition = getPhysicalExerciseDefinition(exerciseId);
+    if (!definition) return;
+
+    const stat = document.createElement("div");
+    stat.className = "stat";
+
+    const copy = document.createElement("div");
+    copy.className = "stat-copy";
+
+    const name = document.createElement("span");
+    name.className = "stat-name";
+    name.textContent = definition.title;
+
+    const progress = document.createElement("p");
+    progress.className = "stat-progress";
+
+    if (definition.unit === "seconds") {
+      progress.textContent = formatPhysicalDuration(total);
+    } else if (definition.unit === "meters") {
+      if (total >= 1000) {
+        const kilometers = total / 1000;
+        progress.textContent =
+          Number.isInteger(kilometers)
+            ? `${kilometers} км`
+            : `${kilometers.toFixed(1)} км`;
+      } else {
+        progress.textContent = `${total} м`;
+      }
+    } else {
+      progress.textContent = `${total} повторень`;
     }
+
+    copy.append(name, progress);
+    stat.appendChild(copy);
+    summary.appendChild(stat);
+  });
+}
 
     function updateCharacterProgressView() {
       const completedSeriesCount = [...document.querySelectorAll("[data-series-id]")].filter((series) => {
