@@ -2961,21 +2961,87 @@ optionalBatchNumber: Number.isInteger(safeSelection.optionalBatchNumber)
     }
 
     function adaptQuestParameters(quest) {
-      const parameters = { ...(quest.parameters || {}) };
-      const score = getAdaptiveScore(quest.characteristicImpact);
-      const step = Number(parameters.step);
-      const adaptValue = (key) => {
-        const baseValue = Number(parameters[key]);
-        if (!Number.isFinite(baseValue) || !Number.isFinite(step) || step <= 0) return;
-        const direction = score >= 2 ? 1 : (score <= -2 ? -1 : 0);
-        const minValue = Number.isFinite(Number(parameters.minValue)) ? Number(parameters.minValue) : baseValue;
-        const maxValue = Number.isFinite(Number(parameters.maxValue)) ? Number(parameters.maxValue) : baseValue;
-        parameters[key] = Math.max(minValue, Math.min(maxValue, baseValue + (direction * step)));
-      };
-      if (quest.questType === questTypeDefinitions.repetitions) adaptValue("reps");
-      if (quest.questType === questTypeDefinitions.duration) adaptValue("durationSeconds");
-      return parameters;
+  const parameters = { ...(quest.parameters || {}) };
+
+  const exerciseId =
+    typeof quest.exerciseId === "string" && quest.exerciseId
+      ? quest.exerciseId
+      : null;
+
+  const exerciseState =
+    exerciseId &&
+    gameState.exerciseAdaptation &&
+    typeof gameState.exerciseAdaptation === "object" &&
+    gameState.exerciseAdaptation[exerciseId] &&
+    typeof gameState.exerciseAdaptation[exerciseId] === "object"
+      ? gameState.exerciseAdaptation[exerciseId]
+      : null;
+
+  const score = Math.max(
+    -3,
+    Math.min(3, Number(exerciseState?.score) || 0)
+  );
+
+  const step = Number(parameters.step);
+
+  const adaptValue = (key) => {
+    const libraryBaseValue = Number(parameters[key]);
+
+    if (
+      !Number.isFinite(libraryBaseValue) ||
+      !Number.isFinite(step) ||
+      step <= 0
+    ) {
+      return;
     }
+
+    const storedCurrentValue = Number(exerciseState?.currentValue);
+
+    const currentValue =
+      Number.isFinite(storedCurrentValue) && storedCurrentValue > 0
+        ? storedCurrentValue
+        : libraryBaseValue;
+
+    const direction =
+      score >= 2
+        ? 1
+        : score <= -2
+          ? -1
+          : 0;
+
+    const minValue =
+      Number.isFinite(Number(parameters.minValue))
+        ? Number(parameters.minValue)
+        : libraryBaseValue;
+
+    const maxValue =
+      Number.isFinite(Number(parameters.maxValue))
+        ? Number(parameters.maxValue)
+        : libraryBaseValue;
+
+    parameters[key] = Math.max(
+      minValue,
+      Math.min(
+        maxValue,
+        currentValue + direction * step
+      )
+    );
+  };
+
+  if (quest.questType === questTypeDefinitions.repetitions) {
+    adaptValue("reps");
+  }
+
+  if (quest.questType === questTypeDefinitions.duration) {
+    adaptValue("durationSeconds");
+  }
+
+  if (quest.questType === questTypeDefinitions.distance) {
+    adaptValue("distanceMeters");
+  }
+
+  return parameters;
+}
 
     function createQuestInstance(quest, instanceId = quest.id) {
   return {
@@ -3636,6 +3702,116 @@ if (
           const currentScore = getAdaptiveScore(quest.characteristicImpact);
           if (!gameState.adaptiveDifficulty || typeof gameState.adaptiveDifficulty !== "object") gameState.adaptiveDifficulty = {};
           gameState.adaptiveDifficulty[quest.characteristicImpact] = Math.max(-3, Math.min(3, currentScore + delta));
+          const exerciseId =
+  quest.exerciseId ||
+  getBaseQuestIdFromInstanceId(quest.id);
+
+if (
+  typeof exerciseId === "string" &&
+  getPhysicalExerciseDefinition(exerciseId)
+) {
+  if (
+    !gameState.exerciseAdaptation ||
+    typeof gameState.exerciseAdaptation !== "object" ||
+    Array.isArray(gameState.exerciseAdaptation)
+  ) {
+    gameState.exerciseAdaptation = {};
+  }
+
+  const currentExerciseState =
+    gameState.exerciseAdaptation[exerciseId] &&
+    typeof gameState.exerciseAdaptation[exerciseId] === "object"
+      ? gameState.exerciseAdaptation[exerciseId]
+      : {
+          score: 0,
+          currentValue: null,
+          updatedAt: null
+        };
+
+  const currentExerciseScore = Math.max(
+    -3,
+    Math.min(3, Number(currentExerciseState.score) || 0)
+  );
+
+  const questParameters = quest.parameters || {};
+
+let performedValue = null;
+
+if (quest.questType === questTypeDefinitions.repetitions) {
+  performedValue = Number(questParameters.reps);
+}
+
+if (quest.questType === questTypeDefinitions.duration) {
+  performedValue = Number(questParameters.durationSeconds);
+}
+
+if (quest.questType === questTypeDefinitions.distance) {
+  performedValue = Number(
+    questParameters.distanceMeters ??
+    questParameters.targetDistance ??
+    questParameters.distance
+  );
+}
+
+const previousCurrentValue = Number(currentExerciseState.currentValue);
+
+const baseCurrentValue =
+  Number.isFinite(performedValue) && performedValue > 0
+    ? performedValue
+    : Number.isFinite(previousCurrentValue) && previousCurrentValue > 0
+      ? previousCurrentValue
+      : null;
+
+const step = Number(questParameters.step);
+
+const minValue =
+  Number.isFinite(Number(questParameters.minValue))
+    ? Number(questParameters.minValue)
+    : baseCurrentValue;
+
+const maxValue =
+  Number.isFinite(Number(questParameters.maxValue))
+    ? Number(questParameters.maxValue)
+    : baseCurrentValue;
+
+const accumulatedScore = Math.max(
+  -3,
+  Math.min(3, currentExerciseScore + delta)
+);
+
+let nextScore = accumulatedScore;
+let nextCurrentValue = baseCurrentValue;
+
+if (
+  Number.isFinite(baseCurrentValue) &&
+  baseCurrentValue > 0 &&
+  Number.isFinite(step) &&
+  step > 0
+) {
+  if (accumulatedScore >= 2) {
+    nextCurrentValue = Math.min(
+      maxValue,
+      baseCurrentValue + step
+    );
+
+    nextScore = 0;
+  } else if (accumulatedScore <= -2) {
+    nextCurrentValue = Math.max(
+      minValue,
+      baseCurrentValue - step
+    );
+
+    nextScore = 0;
+  }
+}
+
+gameState.exerciseAdaptation[exerciseId] = {
+  ...currentExerciseState,
+  score: nextScore,
+  currentValue: nextCurrentValue,
+  updatedAt: new Date().toISOString()
+};
+}
           gameState.questFeedbackHistory.push({
             questId: quest.id,
             characteristicImpact: quest.characteristicImpact,
@@ -4383,8 +4559,9 @@ replaceButton?.addEventListener("click", (event) => {
       achievements: {},
       questPreferences: {},
       notificationPreferences: {},
-      adaptiveDifficulty: {},
-      progressStatistics: {}
+adaptiveDifficulty: {},
+exerciseAdaptation: {},
+progressStatistics: {}
       };
     }
 
@@ -4716,6 +4893,38 @@ replaceButton?.addEventListener("click", (event) => {
           strength: Math.max(-3, Math.min(3, Number(safeState.adaptiveDifficulty?.strength) || 0)),
           endurance: Math.max(-3, Math.min(3, Number(safeState.adaptiveDifficulty?.endurance) || 0))
         },
+        exerciseAdaptation:
+  safeState.exerciseAdaptation &&
+  typeof safeState.exerciseAdaptation === "object" &&
+  !Array.isArray(safeState.exerciseAdaptation)
+    ? Object.fromEntries(
+        Object.entries(safeState.exerciseAdaptation)
+          .filter(([exerciseId, value]) =>
+            typeof exerciseId === "string" &&
+            value &&
+            typeof value === "object" &&
+            !Array.isArray(value)
+          )
+          .map(([exerciseId, value]) => [
+            exerciseId,
+            {
+              score: Math.max(
+                -3,
+                Math.min(3, Number(value.score) || 0)
+              ),
+              currentValue:
+                Number.isFinite(Number(value.currentValue)) &&
+                Number(value.currentValue) > 0
+                  ? Number(value.currentValue)
+                  : null,
+              updatedAt:
+                typeof value.updatedAt === "string"
+                  ? value.updatedAt
+                  : null
+            }
+          ])
+      )
+    : {},
         completedQuests: Array.isArray(safeState.completedQuests) ? safeState.completedQuests : [],
         completedDays: Array.isArray(safeState.completedDays) ? safeState.completedDays : [],
         dailyState: {
