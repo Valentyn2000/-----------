@@ -4403,14 +4403,54 @@ replaceButton?.addEventListener("click", (event) => {
           detail.style.border = "1px solid var(--line)";
           detail.style.background = "rgba(17, 24, 23, .78)";
           const isTimedQuest = quest.questType === questTypeDefinitions.duration || quest.questType === questTypeDefinitions.measuredTime;
-          const detailTarget = quest.parameters?.reps ? `${quest.parameters.reps} віджимань` : (quest.parameters?.durationSeconds ? `Планка ${quest.parameters.durationSeconds} секунд` : quest.title);
+          const detailTarget = quest.parameters?.reps
+  ? `${quest.parameters.reps} повторень`
+  : quest.parameters?.durationSeconds
+    ? `${quest.title} — ${formatQuestTime(quest.parameters.durationSeconds)}`
+    : quest.parameters?.distanceMeters
+      ? `${quest.parameters.distanceMeters} м`
+      : quest.parameters?.targetDistance
+        ? `${quest.parameters.targetDistance}${quest.parameters.distanceUnit || ""}`
+        : quest.title;
           const secondaryButtonText = gameState.completedQuests.includes(quest.id) ? "ВИКОНАНО" : "ПОЧАТИ";
-          detail.innerHTML = `
-            <h4>${quest.title}</h4>
-            <p>${quest.description}</p>
-            <p><strong>Вправа:</strong> ${quest.exerciseId || "Фізичне навантаження"}</p>
-            <p><strong>Ціль:</strong> ${detailTarget}</p>
-            <p><strong>Нагорода:</strong> +${quest.xpReward} XP</p>
+          const instructions = Array.isArray(quest.instructions)
+  ? quest.instructions.filter(Boolean)
+  : (quest.instructions ? [quest.instructions] : []);
+
+const safetyTips = Array.isArray(quest.safetyTips)
+  ? quest.safetyTips.filter(Boolean)
+  : (quest.safetyTips ? [quest.safetyTips] : []);
+
+const instructionsHtml = instructions.length
+  ? `
+    <div style="margin-top:14px;">
+      <p><strong>Як виконувати:</strong></p>
+      <ol style="margin:6px 0 0; padding-left:22px;">
+        ${instructions.map((instruction) => `<li>${instruction}</li>`).join("")}
+      </ol>
+    </div>
+  `
+  : "";
+
+const safetyTipsHtml = safetyTips.length
+  ? `
+    <div style="margin-top:14px;">
+      <p><strong>Безпека:</strong></p>
+      <ul style="margin:6px 0 0; padding-left:22px;">
+        ${safetyTips.map((tip) => `<li>${tip}</li>`).join("")}
+      </ul>
+    </div>
+  `
+  : "";
+
+detail.innerHTML = `
+  <h4>${quest.title}</h4>
+  <p>${quest.description}</p>
+  <p><strong>Вправа:</strong> ${physicalExerciseDefinitions[quest.exerciseId]?.title || quest.title || "Фізичне навантаження"}</p>
+  <p><strong>Ціль:</strong> ${detailTarget}</p>
+  <p><strong>Нагорода:</strong> +${quest.xpReward} XP</p>
+  ${instructionsHtml}
+  ${safetyTipsHtml}
             ${isTimedQuest ? `<p class="quest-time-display" style="font-size:32px; font-variant-numeric:tabular-nums; margin:16px 0;">${formatQuestTime(quest.questType === questTypeDefinitions.duration ? quest.parameters.durationSeconds : 0)}</p>
               <p class="quest-timer-status" role="status" style="min-height:18px;"></p>
               <div style="display:flex; gap:8px; flex-wrap:wrap;">
