@@ -1273,11 +1273,53 @@
     };
 
     const difficultyDefinitions = {
-      easy: "easy",
-      medium: "medium",
-      hard: "hard",
-      veryHard: "veryHard"
-    };
+  easy: "easy",
+  medium: "medium",
+  hard: "hard",
+  veryHard: "veryHard"
+};
+
+const equipmentDefinitions = {
+  dumbbells: {
+    id: "dumbbells",
+    label: "Гантелі"
+  },
+
+  kettlebell: {
+    id: "kettlebell",
+    label: "Гиря"
+  },
+
+  "jump-rope": {
+    id: "jump-rope",
+    label: "Скакалка"
+  },
+
+  bicycle: {
+    id: "bicycle",
+    label: "Велосипед"
+  },
+
+  "pull-up-bar": {
+    id: "pull-up-bar",
+    label: "Турнік"
+  },
+
+  "resistance-band": {
+    id: "resistance-band",
+    label: "Еспандер"
+  },
+
+  mat: {
+    id: "mat",
+    label: "Килимок"
+  },
+
+  bench: {
+    id: "bench",
+    label: "Лава"
+  }
+};
 
     const questLibrary = {
       metadata: {
@@ -1872,7 +1914,10 @@
   characteristicProgressReward: 3,
   repeatable: true,
   cooldown: { type: "day", amount: 1 },
-  requirements: { minimumAvailableTime: 5 },
+  requirements: {
+  minimumAvailableTime: 5,
+  requiredEquipment: ["dumbbells"]
+},
   safety: { physical: true, weighted: true },
   parameters: {
     reps: 8,
@@ -2575,6 +2620,329 @@
   feedbackEnabled: true,
   active: true
 },
+{
+  id: "library-alpha-kettlebell-deadlift-10",
+  exerciseId: "kettlebell-deadlift",
+  title: "10 тяг гирі",
+  description: "Виконай 10 контрольованих підйомів гирі з підлоги.",
+  category: "Фізичний розвиток",
+  characteristicImpact: "strength",
+  questType: questTypeDefinitions.repetitions,
+  difficulty: difficultyDefinitions.medium,
+  xpReward: 18,
+  characteristicProgressReward: 3,
+  repeatable: true,
+  cooldown: { type: "day", amount: 1 },
+
+  requirements: {
+    minimumAvailableTime: 5,
+    requiredEquipment: ["kettlebell"]
+  },
+
+  safety: {
+    physical: true,
+    weighted: true
+  },
+
+  parameters: {
+    reps: 10,
+    minValue: 6,
+    maxValue: 24,
+    step: 2
+  },
+
+  muscleGroups: {
+    primary: ["сідниці", "задня поверхня стегна"],
+    secondary: ["спина", "кор", "передпліччя"]
+  },
+
+  equipment: {
+    type: "kettlebell",
+    count: 1
+  },
+
+  instructions: [
+    "Постав гирю на підлогу перед собою.",
+    "Стань стійко, стопи приблизно на ширині плечей.",
+    "Відведи таз назад і трохи зігни коліна.",
+    "Тримай спину нейтрально.",
+    "Візьми гирю двома руками.",
+    "Піднімися, розгинаючи таз і коліна.",
+    "Контрольовано поверни гирю на підлогу."
+  ],
+
+  safetyTips: [
+    "Починай із ваги, яку можеш повністю контролювати.",
+    "Не округлюй поперек.",
+    "Не смикай гирю руками.",
+    "При болю припини вправу."
+  ],
+
+  progression: {
+    type: "reps",
+    increaseAfterEasyFeedback: 2,
+    decreaseAfterHardFeedback: 2
+  },
+
+  feedbackEnabled: true,
+  active: true
+},
+{
+  id: "library-alpha-jump-rope-60s",
+  exerciseId: "jump-rope",
+  title: "Скакалка 60 секунд",
+  description: "Виконуй стрибки зі скакалкою протягом 60 секунд у комфортному темпі.",
+  category: "Витривалість",
+  characteristicImpact: "endurance",
+  questType: questTypeDefinitions.duration,
+  difficulty: difficultyDefinitions.easy,
+  xpReward: 16,
+  characteristicProgressReward: 2,
+  repeatable: true,
+  cooldown: { type: "day", amount: 1 },
+
+  requirements: {
+    minimumAvailableTime: 3,
+    requiredEquipment: ["jump-rope"]
+  },
+
+  safety: {
+    physical: true,
+    lowImpact: false
+  },
+
+  parameters: {
+    durationSeconds: 60,
+    minValue: 30,
+    maxValue: 600,
+    step: 30
+  },
+
+  muscleGroups: {
+    primary: ["литкові м'язи", "ноги"],
+    secondary: ["плечі", "кор"]
+  },
+
+  equipment: {
+    type: "jump-rope",
+    count: 1
+  },
+
+  instructions: [
+    "Візьми ручки скакалки.",
+    "Стань рівно та залиш достатньо вільного місця.",
+    "Обертай скакалку переважно кистями.",
+    "Виконуй невисокі контрольовані стрибки.",
+    "Зберігай комфортний ритм."
+  ],
+
+  safetyTips: [
+    "Переконайся, що навколо достатньо вільного місця.",
+    "Не стрибай на слизькій поверхні.",
+    "При болю або запамороченні припини вправу."
+  ],
+
+  progression: {
+    type: "duration",
+    increaseAfterEasyFeedback: 30,
+    decreaseAfterHardFeedback: 30
+  },
+
+  feedbackEnabled: true,
+  active: true
+},
+
+{
+  id: "library-alpha-bicycle-10min",
+  exerciseId: "bicycle",
+  title: "Велосипед 10 хвилин",
+  description: "Проведи 10 хвилин на велосипеді у комфортному темпі.",
+  category: "Витривалість",
+  characteristicImpact: "endurance",
+  questType: questTypeDefinitions.duration,
+  difficulty: difficultyDefinitions.easy,
+  xpReward: 20,
+  characteristicProgressReward: 3,
+  repeatable: true,
+  cooldown: { type: "day", amount: 1 },
+
+  requirements: {
+    minimumAvailableTime: 10,
+    requiredEquipment: ["bicycle"]
+  },
+
+  safety: {
+    physical: true
+  },
+
+  parameters: {
+    durationSeconds: 600,
+    minValue: 300,
+    maxValue: 3600,
+    step: 300
+  },
+
+  muscleGroups: {
+    primary: ["ноги", "серцево-судинна витривалість"],
+    secondary: ["сідниці", "кор"]
+  },
+
+  equipment: {
+    type: "bicycle",
+    count: 1
+  },
+
+  instructions: [
+    "Обери безпечний маршрут або місце для їзди.",
+    "Почни у комфортному темпі.",
+    "Підтримуй рівномірне педалювання.",
+    "Контролюй швидкість відповідно до умов."
+  ],
+
+  safetyTips: [
+    "Дотримуйся правил дорожнього руху.",
+    "Враховуй стан дороги та погоду.",
+    "Не продовжуй при болю або різкому погіршенні самопочуття."
+  ],
+
+  progression: {
+    type: "duration",
+    increaseAfterEasyFeedback: 300,
+    decreaseAfterHardFeedback: 300
+  },
+
+  feedbackEnabled: true,
+  active: true
+},
+
+{
+  id: "library-alpha-dead-hang-20s",
+  exerciseId: "dead-hang",
+  title: "Вис на турніку 20 секунд",
+  description: "Утримуй контрольований вис на турніку протягом 20 секунд.",
+  category: "Витривалість",
+  characteristicImpact: "endurance",
+  questType: questTypeDefinitions.duration,
+  difficulty: difficultyDefinitions.medium,
+  xpReward: 16,
+  characteristicProgressReward: 2,
+  repeatable: true,
+  cooldown: { type: "day", amount: 1 },
+
+  requirements: {
+    minimumAvailableTime: 2,
+    requiredEquipment: ["pull-up-bar"]
+  },
+
+  safety: {
+    physical: true
+  },
+
+  parameters: {
+    durationSeconds: 20,
+    minValue: 5,
+    maxValue: 180,
+    step: 5
+  },
+
+  muscleGroups: {
+    primary: ["передпліччя", "верхня частина спини"],
+    secondary: ["плечі", "кор"]
+  },
+
+  equipment: {
+    type: "pull-up-bar",
+    count: 1
+  },
+
+  instructions: [
+    "Переконайся, що турнік надійно закріплений.",
+    "Візьмися за перекладину комфортним хватом.",
+    "Плавно перенеси вагу тіла на руки.",
+    "Утримуй контрольоване положення.",
+    "Заверши вправу без різкого падіння."
+  ],
+
+  safetyTips: [
+    "Не використовуй нестійкий або пошкоджений турнік.",
+    "Не стрибай вниз з великої висоти.",
+    "При болю у плечах або кистях припини вправу."
+  ],
+
+  progression: {
+    type: "duration",
+    increaseAfterEasyFeedback: 5,
+    decreaseAfterHardFeedback: 5
+  },
+
+  feedbackEnabled: true,
+  active: true
+},
+
+{
+  id: "library-alpha-band-row-12",
+  exerciseId: "resistance-band-row",
+  title: "12 тяг еспандера",
+  description: "Виконай 12 контрольованих тяг еспандера до тулуба.",
+  category: "Фізичний розвиток",
+  characteristicImpact: "strength",
+  questType: questTypeDefinitions.repetitions,
+  difficulty: difficultyDefinitions.easy,
+  xpReward: 14,
+  characteristicProgressReward: 2,
+  repeatable: true,
+  cooldown: { type: "day", amount: 1 },
+
+  requirements: {
+    minimumAvailableTime: 4,
+    requiredEquipment: ["resistance-band"]
+  },
+
+  safety: {
+    physical: true
+  },
+
+  parameters: {
+    reps: 12,
+    minValue: 6,
+    maxValue: 40,
+    step: 2
+  },
+
+  muscleGroups: {
+    primary: ["верхня частина спини"],
+    secondary: ["біцепс", "задня частина плечей"]
+  },
+
+  equipment: {
+    type: "resistance-band",
+    count: 1
+  },
+
+  instructions: [
+    "Надійно зафіксуй еспандер.",
+    "Візьми його руками та стань у стійке положення.",
+    "Почни рух із контрольованого положення.",
+    "Потягни руки до тулуба.",
+    "Повільно повернися у вихідне положення."
+  ],
+
+  safetyTips: [
+    "Перевір еспандер на пошкодження перед вправою.",
+    "Переконайся, що точка кріплення надійна.",
+    "Не відпускай натягнутий еспандер різко."
+  ],
+
+  progression: {
+    type: "reps",
+    increaseAfterEasyFeedback: 2,
+    decreaseAfterHardFeedback: 2
+  },
+
+  feedbackEnabled: true,
+  active: true
+},
+
         {
           id: "library-focus-session",
           title: "Сесія зосередження",
@@ -2917,8 +3285,27 @@ optionalBatchNumber: Number.isInteger(safeSelection.optionalBatchNumber)
       }
 
       const requiredEquipment = Array.isArray(requirements.requiredEquipment)
-        ? requirements.requiredEquipment
-        : (requirements.requiredEquipment ? [requirements.requiredEquipment] : []);
+  ? [...requirements.requiredEquipment]
+  : (requirements.requiredEquipment ? [requirements.requiredEquipment] : []);
+
+const equipmentType =
+  typeof quest.equipment?.type === "string"
+    ? quest.equipment.type.trim().toLowerCase()
+    : "none";
+
+const normalizedEquipmentType =
+  equipmentType === "dumbbell"
+    ? "dumbbells"
+    : equipmentType;
+
+if (
+  normalizedEquipmentType !== "none" &&
+  normalizedEquipmentType !== "stable-support" &&
+  equipmentDefinitions[normalizedEquipmentType] &&
+  !requiredEquipment.includes(normalizedEquipmentType)
+) {
+  requiredEquipment.push(normalizedEquipmentType);
+}
       if (requiredEquipment.length) {
         const availableEquipment = new Set(playerContext.availableEquipment);
         const missingEquipment = requiredEquipment.some((item) => {
@@ -3136,36 +3523,102 @@ function getBaseQuestIdFromInstanceId(questId) {
 }
 
     function scoreQuestForRecommendation(quest, selectedIds, recentSelections) {
-      let score = 0;
-      const characteristicValue = getCharacteristicValue(quest.characteristicImpact);
+  let score = 0;
 
-      if (selectedIds.includes(quest.id)) {
-        score += 1000;
-      }
-      if (isQuestInCooldown(quest, recentSelections)) {
-        score += 2000;
-      }
-      if (quest.characteristicImpact && characteristicValue !== null) {
-        const desiredDifficulty = characteristicValue <= 2 ? "easy" : (characteristicValue <= 4 ? "medium" : (characteristicValue <= 6 ? "hard" : "veryHard"));
-        const preferredDifficulty = getAdaptiveDifficulty(quest.characteristicImpact, desiredDifficulty);
-        const difference = Math.abs(getDifficultyOrderValue(quest.difficulty) - getDifficultyOrderValue(preferredDifficulty));
-        score += difference * 80;
-      }
-      if (selectedIds.length) {
-        selectedIds.forEach((selectedId) => {
-          const selectedQuest = getQuestLibrary().find((candidate) => candidate.id === selectedId);
-          if (!selectedQuest) return;
-          if (selectedQuest.characteristicImpact && quest.characteristicImpact && selectedQuest.characteristicImpact === quest.characteristicImpact) {
-            score += 60;
-          }
-          if (selectedQuest.questType && selectedQuest.questType === quest.questType) {
-            score += 45;
-          }
-        });
+  const characteristicValue =
+    getCharacteristicValue(quest.characteristicImpact);
+
+  if (selectedIds.includes(quest.id)) {
+    score += 1000;
+  }
+
+  if (isQuestInCooldown(quest, recentSelections)) {
+    score += 2000;
+  }
+
+  if (
+    quest.characteristicImpact &&
+    characteristicValue !== null
+  ) {
+    const desiredDifficulty =
+      characteristicValue <= 2
+        ? "easy"
+        : characteristicValue <= 4
+          ? "medium"
+          : characteristicValue <= 6
+            ? "hard"
+            : "veryHard";
+
+    const preferredDifficulty =
+      getAdaptiveDifficulty(
+        quest.characteristicImpact,
+        desiredDifficulty
+      );
+
+    const difference = Math.abs(
+      getDifficultyOrderValue(quest.difficulty) -
+      getDifficultyOrderValue(preferredDifficulty)
+    );
+
+    score += difference * 80;
+  }
+
+  const playerContext = getPlayerContext();
+
+  const availableEquipment = new Set(
+    Array.isArray(playerContext.availableEquipment)
+      ? playerContext.availableEquipment
+      : []
+  );
+
+  const requiredEquipment = Array.isArray(
+    quest.requirements?.requiredEquipment
+  )
+    ? quest.requirements.requiredEquipment
+    : quest.requirements?.requiredEquipment
+      ? [quest.requirements.requiredEquipment]
+      : [];
+
+  const usesSelectedEquipment =
+    requiredEquipment.length > 0 &&
+    requiredEquipment.some((equipmentId) =>
+      availableEquipment.has(
+        String(equipmentId).trim().toLowerCase()
+      )
+    );
+
+  if (usesSelectedEquipment) {
+    score -= 500;
+  }
+
+  if (selectedIds.length) {
+    selectedIds.forEach((selectedId) => {
+      const selectedQuest = getQuestLibrary().find(
+        (candidate) => candidate.id === selectedId
+      );
+
+      if (!selectedQuest) return;
+
+      if (
+        selectedQuest.characteristicImpact &&
+        quest.characteristicImpact &&
+        selectedQuest.characteristicImpact ===
+          quest.characteristicImpact
+      ) {
+        score += 60;
       }
 
-      return score;
-    }
+      if (
+        selectedQuest.questType &&
+        selectedQuest.questType === quest.questType
+      ) {
+        score += 45;
+      }
+    });
+  }
+
+  return score;
+}
 
     function getPhysicalQuestLoadGroup(quest) {
   const exerciseId =
@@ -3568,48 +4021,200 @@ optionalBatchNumber: 0,
     }
 
     function renderPlayerContextControls() {
-      const questsScreen = document.getElementById("quests-screen");
-      if (!questsScreen) return;
+  const questsScreen = document.getElementById("quests-screen");
+  if (!questsScreen) return;
 
-      const existing = document.getElementById("player-context-panel");
-      if (existing) existing.remove();
+  const existing = document.getElementById("player-context-panel");
+  if (existing) existing.remove();
 
-      const contextPanel = document.createElement("section");
-      contextPanel.id = "player-context-panel";
-      contextPanel.className = "section";
-      const currentTime = Number(gameState?.playerContext?.availableTimeMinutes);
-      const options = [10, 20, 30, 60, null];
-      const optionLabels = { 10: "10 хв", 20: "20 хв", 30: "30 хв", 60: "60 хв", null: "Без обмеження" };
+  const contextPanel = document.createElement("section");
+  contextPanel.id = "player-context-panel";
+  contextPanel.className = "section";
 
-      contextPanel.innerHTML = `
-        <p class="section-label">Базовий контекст</p>
-        <div class="recommended-quest">
-          <p class="social-quest-description" style="margin-bottom: 10px;">Доступний час на квести</p>
-          <div class="recommended-quest-meta" style="gap: 6px; margin-bottom: 0;">
-            ${options.map((option) => {
-              const isActive = option === null ? currentTime === null || !Number.isFinite(currentTime) : currentTime === option;
-              const value = option === null ? "" : String(option);
-              return `<button class="nav-button ${isActive ? "active" : ""}" type="button" data-context-time="${value}" style="min-height: 34px; padding: 0 10px; font-size: 10px; border-radius: 0;">${optionLabels[option]}</button>`;
-            }).join("")}
-          </div>
-        </div>
-      `;
+  const currentTime =
+    gameState?.playerContext?.availableTimeMinutes ?? null;
 
-      contextPanel.querySelectorAll("[data-context-time]").forEach((button) => {
-        button.addEventListener("click", () => {
-          const rawValue = button.dataset.contextTime;
-          const nextValue = rawValue === "" ? null : Number(rawValue);
-          gameState.playerContext = normalizePlayerContext({
+  const selectedEquipment = new Set(
+    Array.isArray(gameState?.playerContext?.availableEquipment)
+      ? gameState.playerContext.availableEquipment
+      : []
+  );
+
+  const timeOptions = [10, 20, 30, 60, null];
+
+  const timeOptionLabels = {
+    10: "10 хв",
+    20: "20 хв",
+    30: "30 хв",
+    60: "60 хв",
+    null: "Без обмеження"
+  };
+
+  const equipmentOptions = [
+    { id: "dumbbells", label: "Гантелі" },
+    { id: "kettlebell", label: "Гиря" },
+    { id: "jump-rope", label: "Скакалка" },
+    { id: "bicycle", label: "Велосипед" },
+    { id: "pull-up-bar", label: "Турнік" },
+    { id: "resistance-band", label: "Еспандер" },
+    { id: "mat", label: "Килимок" },
+    { id: "bench", label: "Лава" }
+  ];
+
+  contextPanel.innerHTML = `
+    <p class="section-label">Базовий контекст</p>
+
+    <div class="recommended-quest">
+      <p
+        class="social-quest-description"
+        style="margin-bottom: 10px;"
+      >
+        Доступний час на квести
+      </p>
+
+      <div
+        class="recommended-quest-meta"
+        style="gap: 6px; margin-bottom: 0;"
+      >
+        ${timeOptions.map((option) => {
+          const isActive =
+            option === null
+              ? currentTime === null
+              : currentTime === option;
+
+          const value =
+            option === null
+              ? ""
+              : String(option);
+
+          return `
+            <button
+              class="nav-button ${isActive ? "active" : ""}"
+              type="button"
+              data-context-time="${value}"
+              style="
+                min-height: 34px;
+                padding: 0 10px;
+                font-size: 10px;
+                border-radius: 0;
+              "
+            >
+              ${timeOptionLabels[option]}
+            </button>
+          `;
+        }).join("")}
+      </div>
+    </div>
+
+    <div
+      class="recommended-quest"
+      style="margin-top: 12px;"
+    >
+      <p
+        class="social-quest-description"
+        style="margin-bottom: 10px;"
+      >
+        Доступне обладнання
+      </p>
+
+      <div
+        class="recommended-quest-meta"
+        style="
+          gap: 6px;
+          margin-bottom: 0;
+          display: flex;
+          flex-wrap: wrap;
+        "
+      >
+        ${equipmentOptions.map((equipment) => {
+          const isActive =
+            selectedEquipment.has(equipment.id);
+
+          return `
+            <button
+              class="nav-button ${isActive ? "active" : ""}"
+              type="button"
+              data-context-equipment="${equipment.id}"
+              style="
+                min-height: 34px;
+                padding: 0 10px;
+                font-size: 10px;
+                border-radius: 0;
+              "
+            >
+              ${equipment.label}
+            </button>
+          `;
+        }).join("")}
+      </div>
+    </div>
+  `;
+
+  contextPanel
+    .querySelectorAll("[data-context-time]")
+    .forEach((button) => {
+      button.addEventListener("click", () => {
+        const rawValue =
+          button.dataset.contextTime;
+
+        const nextValue =
+          rawValue === ""
+            ? null
+            : Number(rawValue);
+
+        gameState.playerContext =
+          normalizePlayerContext({
             ...gameState.playerContext,
             availableTimeMinutes: nextValue
           });
-          saveGameState();
-          renderRecommendedQuests();
-        });
-      });
 
-      questsScreen.appendChild(contextPanel);
-    }
+        saveGameState();
+        renderPlayerContextControls();
+      });
+    });
+
+  contextPanel
+    .querySelectorAll("[data-context-equipment]")
+    .forEach((button) => {
+      button.addEventListener("click", () => {
+        const equipmentId =
+          button.dataset.contextEquipment;
+
+        const currentEquipment = new Set(
+          Array.isArray(
+            gameState?.playerContext?.availableEquipment
+          )
+            ? gameState.playerContext.availableEquipment
+            : []
+        );
+
+        if (currentEquipment.has(equipmentId)) {
+          currentEquipment.delete(equipmentId);
+        } else {
+          currentEquipment.add(equipmentId);
+        }
+
+        gameState.playerContext =
+          normalizePlayerContext({
+            ...gameState.playerContext,
+            availableEquipment: [
+              ...currentEquipment
+            ]
+          });
+
+        saveGameState();
+        renderPlayerContextControls();
+      });
+    });
+
+  const firstQuestSection = questsScreen.querySelector(".section");
+
+if (firstQuestSection) {
+  questsScreen.insertBefore(contextPanel, firstQuestSection);
+} else {
+  questsScreen.appendChild(contextPanel);
+}
+}
 
     function replaceQuestInSelection(questId) {
       const selectionState = normalizeQuestSelectionState(gameState.questSelection);
@@ -4561,6 +5166,44 @@ detail.innerHTML = `
     unit: "repetitions",
     maxValue: 500
   },
+  "jump-rope": {
+  id: "jump-rope",
+  title: "Скакалка",
+  metric: "durationSeconds",
+  unit: "seconds",
+  maxValue: 7200
+},
+
+"bicycle": {
+  id: "bicycle",
+  title: "Велосипед",
+  metric: "durationSeconds",
+  unit: "seconds",
+  maxValue: 14400
+},
+
+"dead-hang": {
+  id: "dead-hang",
+  title: "Вис на турніку",
+  metric: "durationSeconds",
+  unit: "seconds",
+  maxValue: 1800
+},
+
+"resistance-band-row": {
+  id: "resistance-band-row",
+  title: "Тяга еспандера",
+  metric: "repetitions",
+  unit: "repetitions",
+  maxValue: 500
+},
+  "kettlebell-deadlift": {
+  id: "kettlebell-deadlift",
+  title: "Тяга гирі",
+  metric: "repetitions",
+  unit: "repetitions",
+  maxValue: 500
+},
 
   "goblet-squat": {
     id: "goblet-squat",
@@ -5064,25 +5707,60 @@ progressStatistics: {}
     }
 
     function activateScreen(screenName) {
-      const appShell = document.getElementById("app-shell");
-      const screenButtons = [...document.querySelectorAll(".nav-button")];
-      const screens = [...document.querySelectorAll(".screen")];
+  const appShell = document.getElementById("app-shell");
 
-      if (!appShell || !screenButtons.length || !screens.length) return;
-      if (gameState.awakening.status !== "completed") return;
+  const screenButtons = [
+    ...document.querySelectorAll(
+      "#bottom-nav .nav-button[data-screen]"
+    )
+  ];
 
-      screens.forEach((screen) => screen.classList.toggle("active", screen.dataset.screen === screenName));
-      screenButtons.forEach((button) => button.classList.toggle("active", button.dataset.screen === screenName));
-    }
+  const screens = [
+    ...document.querySelectorAll(".screen")
+  ];
+
+  if (
+    !appShell ||
+    !screenButtons.length ||
+    !screens.length
+  ) {
+    return;
+  }
+
+  if (
+    gameState.awakening.status !== "completed"
+  ) {
+    return;
+  }
+
+  screens.forEach((screen) => {
+    screen.classList.toggle(
+      "active",
+      screen.dataset.screen === screenName
+    );
+  });
+
+  screenButtons.forEach((button) => {
+    button.classList.toggle(
+      "active",
+      button.dataset.screen === screenName
+    );
+  });
+}
 
     function setupNavigation() {
-      const navButtons = [...document.querySelectorAll(".nav-button")];
-      navButtons.forEach((button) => {
-        button.addEventListener("click", () => {
-          activateScreen(button.dataset.screen);
-        });
-      });
-    }
+  const navButtons = [
+    ...document.querySelectorAll(
+      "#bottom-nav .nav-button[data-screen]"
+    )
+  ];
+
+  navButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      activateScreen(button.dataset.screen);
+    });
+  });
+}
 
     function isQuestAvailable(quest, playerLevel) {
       const minLevel = Number(quest.minLevel || 1);
