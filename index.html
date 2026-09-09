@@ -2870,6 +2870,37 @@ optionalBatchNumber: Number.isInteger(safeSelection.optionalBatchNumber)
       return Number.isFinite(characteristic.current) ? characteristic.current : null;
     }
 
+    function getEstimatedQuestDurationMinutes(quest) {
+  const parameters = quest?.parameters || {};
+
+  if (Number.isFinite(parameters.durationSeconds) && parameters.durationSeconds > 0) {
+    return parameters.durationSeconds / 60;
+  }
+
+  if (Number.isFinite(parameters.durationMinutes) && parameters.durationMinutes > 0) {
+    return parameters.durationMinutes;
+  }
+
+  if (Number.isFinite(parameters.distanceMeters) && parameters.distanceMeters > 0) {
+    const walkingSpeedMetersPerMinute = 80;
+    return parameters.distanceMeters / walkingSpeedMetersPerMinute;
+  }
+
+  if (Number.isFinite(parameters.reps) && parameters.reps > 0) {
+    const secondsPerRep = 4;
+    return (parameters.reps * secondsPerRep) / 60;
+  }
+
+  if (
+    Number.isFinite(quest?.requirements?.minimumAvailableTime) &&
+    quest.requirements.minimumAvailableTime > 0
+  ) {
+    return quest.requirements.minimumAvailableTime;
+  }
+
+  return 1;
+}
+
     function matchesBaseRequirements(quest, playerContext = getPlayerContext()) {
       const requirements = quest.requirements || {};
       const characteristicValue = getCharacteristicValue(quest.characteristicImpact);
@@ -3136,7 +3167,80 @@ function getBaseQuestIdFromInstanceId(questId) {
       return score;
     }
 
-    function generateRuleBasedQuestSelection() {
+    function getPhysicalQuestLoadGroup(quest) {
+  const exerciseId =
+    typeof quest?.exerciseId === "string"
+      ? quest.exerciseId
+      : "";
+
+  const groups = {
+    legs: new Set([
+      "squats",
+      "reverse-lunges",
+      "glute-bridge",
+      "calf-raises",
+      "goblet-squat",
+      "dumbbell-rdl"
+    ]),
+
+    push: new Set([
+      "pushups",
+      "incline-pushups",
+      "floor-press",
+      "overhead-press"
+    ]),
+
+    pull: new Set([
+      "one-arm-row"
+    ]),
+
+    core: new Set([
+      "plank",
+      "dead-bug",
+      "bird-dog"
+    ]),
+
+    arms: new Set([
+      "biceps-curl",
+      "hammer-curl",
+      "triceps-extension",
+      "lateral-raise"
+    ]),
+
+    conditioning: new Set([
+      "farmer-carry",
+      "fast-walk",
+      "walk"
+    ]),
+
+    mobility: new Set([
+      "mobility",
+      "recovery-mobility"
+    ])
+  };
+
+  for (const [groupName, exerciseIds] of Object.entries(groups)) {
+    if (exerciseIds.has(exerciseId)) {
+      return groupName;
+    }
+  }
+
+  if (quest?.questType === questTypeDefinitions.distance) {
+    return "conditioning";
+  }
+
+  if (quest?.characteristicImpact === "endurance") {
+    return "endurance";
+  }
+
+  if (quest?.characteristicImpact === "strength") {
+    return "strength";
+  }
+
+  return "other";
+}
+
+function generateRuleBasedQuestSelection() {
       const library = getQuestLibrary();
       const selectionState = normalizeQuestSelectionState(gameState.questSelection);
       const selectedIds = [...selectionState.selectedQuestIds];
@@ -3154,36 +3258,170 @@ function getBaseQuestIdFromInstanceId(questId) {
       });
 
       const prioritized = candidates
-        .map((quest) => ({ quest, score: scoreQuestForRecommendation(quest, selectedIds, recentSelections) }))
-        .sort((first, second) => first.score - second.score);
+  .map((quest) => ({
+    quest,
+    score: scoreQuestForRecommendation(
+      quest,
+      selectedIds,
+      recentSelections
+    )
+  }))
+  .sort((first, second) => first.score - second.score);
 
-      let chosen = prioritized.slice(0, requiredDailyQuestLimit).map((entry) => entry.quest.id);
+const chosen = [];
+const usedLoadGroups = new Set();
 
-      if (!chosen.length) {
-        const fallback = library.filter((quest) => {
-          if (!quest.active) return false;
-          if (isPhysicalAlphaEnabled() && !isQuestAllowedInPhysicalAlpha(quest)) return false;
-          if (quest.repeatable === false && completedQuestIds.includes(quest.id)) return false;
-          if (isQuestInCooldown(quest, recentSelections)) return false;
-          return matchesBaseRequirements(quest, playerContext);
-        });
-        chosen = fallback.slice(0, requiredDailyQuestLimit).map((quest) => quest.id);
-      }
+const hasTimeLimit =
+  Number.isFinite(playerContext.availableTimeMinutes) &&
+  playerContext.availableTimeMinutes > 0;
 
-      const uniqueChosen = [];
-      const seenCharacteristics = new Set();
-      const seenTypes = new Set();
-      chosen.forEach((questId) => {
-        const quest = library.find((candidate) => candidate.id === questId);
-        if (!quest) return;
-        //if (seenCharacteristics.size < 3 && quest.characteristicImpact && seenCharacteristics.has(quest.characteristicImpact)) return;
-        //if (seenTypes.size < 3 && quest.questType && seenTypes.has(quest.questType)) return;
-        if (quest.characteristicImpact) seenCharacteristics.add(quest.characteristicImpact);
-        if (quest.questType) seenTypes.add(quest.questType);
-        uniqueChosen.push(questId);
-      });
+const timeBudgetMinutes = hasTimeLimit
+  ? playerContext.availableTimeMinutes
+  : Infinity;
 
-      return uniqueChosen.slice(0, requiredDailyQuestLimit);
+let estimatedChosenTimeMinutes = 0;
+
+function getQuestEstimatedTimeForSelection(quest) {
+  const adaptedParameters = adaptQuestParameters(quest);
+
+  return getEstimatedQuestDurationMinutes({
+    ...quest,
+    parameters: adaptedParameters
+  });
+}
+
+function canQuestFitTimeBudget(quest) {
+  if (!hasTimeLimit) return true;
+
+  const estimatedTime =
+    getQuestEstimatedTimeForSelection(quest);
+
+  return (
+    estimatedChosenTimeMinutes + estimatedTime <=
+    timeBudgetMinutes
+  );
+}
+
+function addQuestToSelection(quest) {
+  if (!quest) return false;
+  if (chosen.includes(quest.id)) return false;
+
+  chosen.push(quest.id);
+
+  estimatedChosenTimeMinutes +=
+    getQuestEstimatedTimeForSelection(quest);
+
+  return true;
+}
+
+/*
+  Перший прохід:
+  намагаємося взяти різні групи навантаження
+  і водночас не перевищити доступний час.
+*/
+prioritized.forEach(({ quest }) => {
+  if (chosen.length >= requiredDailyQuestLimit) return;
+
+  const loadGroup =
+    getPhysicalQuestLoadGroup(quest);
+
+  if (usedLoadGroups.has(loadGroup)) return;
+  if (!canQuestFitTimeBudget(quest)) return;
+
+  if (addQuestToSelection(quest)) {
+    usedLoadGroups.add(loadGroup);
+  }
+});
+
+/*
+  Другий прохід:
+  якщо різних груп недостатньо,
+  добираємо будь-які найкращі квести,
+  які ще вкладаються в доступний час.
+*/
+prioritized.forEach(({ quest }) => {
+  if (chosen.length >= requiredDailyQuestLimit) return;
+  if (chosen.includes(quest.id)) return;
+  if (!canQuestFitTimeBudget(quest)) return;
+
+  addQuestToSelection(quest);
+});
+
+/*
+  Третій прохід:
+  резервний добір із бібліотеки.
+  Також намагаємося дотримуватися ліміту часу.
+*/
+if (chosen.length < requiredDailyQuestLimit) {
+  const fallback = library.filter((quest) => {
+    if (!quest.active) return false;
+    if (selectedIds.includes(quest.id)) return false;
+    if (chosen.includes(quest.id)) return false;
+
+    if (
+      isPhysicalAlphaEnabled() &&
+      !isQuestAllowedInPhysicalAlpha(quest)
+    ) {
+      return false;
+    }
+
+    if (
+      quest.repeatable === false &&
+      completedQuestIds.includes(quest.id)
+    ) {
+      return false;
+    }
+
+    if (
+      isQuestInCooldown(
+        quest,
+        recentSelections
+      )
+    ) {
+      return false;
+    }
+
+    if (
+      !matchesBaseRequirements(
+        quest,
+        playerContext
+      )
+    ) {
+      return false;
+    }
+
+    return true;
+  });
+
+  fallback.forEach((quest) => {
+    if (chosen.length >= requiredDailyQuestLimit) return;
+    if (!canQuestFitTimeBudget(quest)) return;
+
+    addQuestToSelection(quest);
+  });
+}
+
+/*
+  Остання страховка:
+  якщо заданий час настільки малий,
+  що сформувати 4 квести неможливо,
+  все одно добираємо до 4 найбільш придатних.
+  Це не дозволяє зламати обов'язковий
+  щоденний цикл.
+*/
+if (chosen.length < requiredDailyQuestLimit) {
+  prioritized.forEach(({ quest }) => {
+    if (chosen.length >= requiredDailyQuestLimit) return;
+    if (chosen.includes(quest.id)) return;
+
+    addQuestToSelection(quest);
+  });
+}
+
+return chosen.slice(
+  0,
+  requiredDailyQuestLimit
+);
     }
     function generateOptionalQuestSelection(excludedQuestIds = []) {
   const library = getQuestLibrary();
