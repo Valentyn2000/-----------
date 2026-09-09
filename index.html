@@ -1244,6 +1244,9 @@
     const gameStorageKey = "life-game-state";
     const longTermStorageKey = "longTermQuestProgress";
     const questTimerStorageKey = "life-game-quest-timers";
+    const trainingBlockDurationSeconds = 30 * 60;
+
+let trainingTimerIntervalId = null;
     const gameStateSchemaVersion = 2;
     const translations = {
       uk: {
@@ -5095,6 +5098,14 @@ detail.innerHTML = `
     const physicalAlphaCharacteristics = ["strength", "endurance"];
     const fullCharacteristicSet = ["strength", "endurance", "intelligence", "charisma", "practicality"];
     const physicalExerciseDefinitions = {
+      training: {
+  id: "training",
+  title: "Тренування",
+  metric: "durationSeconds",
+  unit: "seconds",
+  minValue: 1,
+  maxValue: 21600
+},
   pushups: {
     id: "pushups",
     title: "Віджимання",
@@ -5482,7 +5493,17 @@ detail.innerHTML = `
       notificationPreferences: {},
 adaptiveDifficulty: {},
 exerciseAdaptation: {},
-progressStatistics: {}
+progressStatistics: {},
+
+trainingState: {
+  active: false,
+  blockStartedAt: null,
+  elapsedSeconds: 0,
+  completedBlocksToday: 0,
+  completedMinutesToday: 0,
+  lastTrainingDateKey: null,
+  rewardedBlockIds: []
+}
       };
     }
 
@@ -5515,6 +5536,269 @@ progressStatistics: {}
       { id: "pool-training-30", title: "30 хвилин тренування", category: "Фізичний розвиток", difficulty: "hard", minLevel: 5, xpReward: 40 },
       { id: "pool-hard-challenge", title: "Складний виклик дня", category: "Особистий розвиток", difficulty: "veryHard", minLevel: 8, xpReward: 70 }
     ];
+    function getTrainingElapsedSeconds() {
+  const trainingState =
+    gameState.trainingState || {};
+
+  const savedElapsed =
+    Math.max(
+      0,
+      Number(trainingState.elapsedSeconds) || 0
+    );
+
+  if (
+    trainingState.active !== true ||
+    !Number.isFinite(Number(trainingState.blockStartedAt))
+  ) {
+    return savedElapsed;
+  }
+
+  const currentSessionSeconds =
+    Math.max(
+      0,
+      Math.floor(
+        (
+          Date.now() -
+          Number(trainingState.blockStartedAt)
+        ) / 1000
+      )
+    );
+
+  return Math.min(
+    trainingBlockDurationSeconds,
+    savedElapsed + currentSessionSeconds
+  );
+}
+
+function getTrainingRemainingSeconds() {
+  return Math.max(
+    0,
+    trainingBlockDurationSeconds -
+    getTrainingElapsedSeconds()
+  );
+}
+function startTrainingTimerLoop() {
+  if (trainingTimerIntervalId !== null) {
+    clearInterval(trainingTimerIntervalId);
+  }
+
+  trainingTimerIntervalId = setInterval(() => {
+    const display =
+      document.getElementById("training-time-display");
+
+    const remainingSeconds =
+      getTrainingRemainingSeconds();
+
+    if (display) {
+      display.textContent =
+        formatQuestTime(remainingSeconds);
+    }
+
+    if (remainingSeconds <= 0) {
+  clearInterval(trainingTimerIntervalId);
+  trainingTimerIntervalId = null;
+
+  completeTrainingBlock();
+}
+  }, 1000);
+}
+function completeTrainingBlock() {
+  const trainingState =
+    gameState.trainingState || {};
+
+  if (trainingState.active !== true) {
+    return false;
+  }
+
+  const elapsedSeconds =
+    getTrainingElapsedSeconds();
+
+  if (
+    elapsedSeconds <
+    trainingBlockDurationSeconds
+  ) {
+    return false;
+  }
+
+  const blockStartedAt =
+    Number(trainingState.blockStartedAt);
+
+  if (!Number.isFinite(blockStartedAt)) {
+    return false;
+  }
+
+  const blockId =
+    `training-${blockStartedAt}`;
+
+  const rewardedBlockIds =
+    Array.isArray(trainingState.rewardedBlockIds)
+      ? trainingState.rewardedBlockIds
+      : [];
+
+  if (rewardedBlockIds.includes(blockId)) {
+    return false;
+  }
+
+  const todayKey = getTodayKey();
+
+  const sameTrainingDay =
+    trainingState.lastTrainingDateKey === todayKey;
+
+  const previousBlocks =
+    sameTrainingDay
+      ? Number(trainingState.completedBlocksToday) || 0
+      : 0;
+
+  const previousMinutes =
+    sameTrainingDay
+      ? Number(trainingState.completedMinutesToday) || 0
+      : 0;
+
+  const trainingXpReward = 40;
+
+  gameState.experience += trainingXpReward;
+
+  recordPhysicalActivity({
+    exerciseId: "training",
+    value: 1800,
+    unit: getPhysicalExerciseDefinition("training").unit,
+    source: "training",
+    questId: blockId,
+    timestamp: new Date().toISOString()
+  });
+
+  gameState.trainingState = {
+    ...trainingState,
+
+    active: false,
+    blockStartedAt: null,
+    elapsedSeconds: 0,
+
+    completedBlocksToday:
+      previousBlocks + 1,
+
+    completedMinutesToday:
+      previousMinutes + 30,
+
+    lastTrainingDateKey:
+      todayKey,
+
+    rewardedBlockIds: [
+      ...rewardedBlockIds,
+      blockId
+    ]
+  };
+
+  saveGameState();
+
+  renderTrainingSection();
+
+  return true;
+}
+function renderTrainingSection() {
+  const homeScreen =
+    document.getElementById("home-screen");
+
+  if (!homeScreen) return;
+
+  const existing =
+    document.getElementById("training-section");
+
+  if (existing) {
+    existing.remove();
+  }
+
+  const trainingState =
+  gameState.trainingState || {};
+
+const completedBlocks =
+  Number(trainingState.completedBlocksToday) || 0;
+
+const completedMinutes =
+  Number(trainingState.completedMinutesToday) || 0;
+
+const remainingSeconds =
+  getTrainingRemainingSeconds();
+
+const remainingTimeText =
+  formatQuestTime(remainingSeconds);
+
+  const trainingSection =
+    document.createElement("section");
+
+  trainingSection.id = "training-section";
+  trainingSection.className = "section";
+
+  trainingSection.innerHTML = `
+    <p class="section-label">ТРЕНУВАННЯ</p>
+
+    <div class="recommended-quest">
+      <h3>30 хвилин тренування</h3>
+
+      <p>
+        Запусти незалежний 30-хвилинний блок тренування.
+        Під час нього можна продовжувати користуватися грою.
+      </p>
+
+      <div class="recommended-quest-meta">
+        <span>СЬОГОДНІ: ${completedMinutes} ХВ</span>
+        <span>БЛОКІВ: ${completedBlocks}</span>
+      </div>
+
+      <p
+        id="training-time-display"
+        style="
+          margin-top: 16px;
+          margin-bottom: 14px;
+          font-size: 32px;
+          color: var(--accent);
+          font-variant-numeric: tabular-nums;
+        "
+      >
+        ${remainingTimeText}
+      </p>
+
+      <button
+        id="training-start-button"
+        class="complete-button"
+        type="button"
+      >
+        ПОЧАТИ 30 ХВ
+      </button>
+    </div>
+  `;
+
+  const startButton =
+  trainingSection.querySelector("#training-start-button");
+
+if (startButton) {
+  startButton.addEventListener("click", () => {
+    if (gameState.trainingState?.active === true) {
+      return;
+    }
+
+    gameState.trainingState = {
+      ...gameState.trainingState,
+      active: true,
+      blockStartedAt: Date.now(),
+      elapsedSeconds: 0,
+      lastTrainingDateKey: getTodayKey()
+    };
+
+    saveGameState();
+
+    startTrainingTimerLoop();
+
+    renderTrainingSection();
+  });
+}
+
+homeScreen.appendChild(trainingSection);
+
+if (trainingState.active === true) {
+  startTrainingTimerLoop();
+}
+}
 
     function moveContentIntoScreens() {
       const appShell = document.getElementById("app-shell");
@@ -5526,10 +5810,22 @@ progressStatistics: {}
 
       const heroCard = document.querySelector(".hero-card");
       const progressSection = document.querySelector('section[aria-labelledby="character-progress-title"]');
-      if (heroCard && homeScreen) homeScreen.appendChild(heroCard);
-      if (progressSection && homeScreen) homeScreen.appendChild(progressSection);
-      const dailyCycleSection = document.getElementById("daily-cycle-section");
-      if (dailyCycleSection && homeScreen) homeScreen.appendChild(dailyCycleSection);
+      if (heroCard && homeScreen) {
+  homeScreen.appendChild(heroCard);
+}
+
+if (progressSection && homeScreen) {
+  homeScreen.appendChild(progressSection);
+}
+
+renderTrainingSection();
+
+const dailyCycleSection =
+  document.getElementById("daily-cycle-section");
+
+if (dailyCycleSection && homeScreen) {
+  homeScreen.appendChild(dailyCycleSection);
+}
 
       if (!isPhysicalAlphaEnabled()) {
         const homeCta = document.createElement("section");
@@ -5881,6 +6177,45 @@ progressStatistics: {}
           ])
       )
     : {},
+    trainingState: {
+  active: safeState.trainingState?.active === true,
+
+  blockStartedAt:
+    Number.isFinite(Number(safeState.trainingState?.blockStartedAt)) &&
+    Number(safeState.trainingState.blockStartedAt) > 0
+      ? Number(safeState.trainingState.blockStartedAt)
+      : null,
+
+  elapsedSeconds:
+    Number.isFinite(Number(safeState.trainingState?.elapsedSeconds)) &&
+    Number(safeState.trainingState.elapsedSeconds) >= 0
+      ? Number(safeState.trainingState.elapsedSeconds)
+      : 0,
+
+  completedBlocksToday:
+    Number.isInteger(Number(safeState.trainingState?.completedBlocksToday)) &&
+    Number(safeState.trainingState.completedBlocksToday) >= 0
+      ? Number(safeState.trainingState.completedBlocksToday)
+      : 0,
+
+  completedMinutesToday:
+    Number.isFinite(Number(safeState.trainingState?.completedMinutesToday)) &&
+    Number(safeState.trainingState.completedMinutesToday) >= 0
+      ? Number(safeState.trainingState.completedMinutesToday)
+      : 0,
+
+  lastTrainingDateKey:
+    typeof safeState.trainingState?.lastTrainingDateKey === "string"
+      ? safeState.trainingState.lastTrainingDateKey
+      : null,
+
+  rewardedBlockIds:
+    Array.isArray(safeState.trainingState?.rewardedBlockIds)
+      ? safeState.trainingState.rewardedBlockIds.filter(
+          (blockId) => typeof blockId === "string"
+        )
+      : []
+},
         completedQuests: Array.isArray(safeState.completedQuests) ? safeState.completedQuests : [],
         completedDays: Array.isArray(safeState.completedDays) ? safeState.completedDays : [],
         dailyState: {
@@ -6165,15 +6500,34 @@ progressStatistics: {}
     }
 
     function formatPhysicalDuration(totalSeconds) {
-      const safeSeconds = Math.max(0, Math.floor(Number(totalSeconds) || 0));
-      const minutes = Math.floor(safeSeconds / 60);
-      const remainderSeconds = safeSeconds % 60;
-      const hours = Math.floor(minutes / 60);
-      const minutesPart = minutes % 60;
-      if (hours > 0) return `${hours} г ${minutesPart} хв ${remainderSeconds} с`;
-      if (minutes > 0) return `${minutes} хв ${remainderSeconds} с`;
-      return `${remainderSeconds} с`;
+  const safeSeconds = Math.max(0, Math.floor(Number(totalSeconds) || 0));
+  const minutes = Math.floor(safeSeconds / 60);
+  const remainderSeconds = safeSeconds % 60;
+  const hours = Math.floor(minutes / 60);
+  const minutesPart = minutes % 60;
+
+  if (hours > 0) {
+    if (minutesPart === 0 && remainderSeconds === 0) {
+      return `${hours} год`;
     }
+
+    if (remainderSeconds === 0) {
+      return `${hours} год ${minutesPart} хв`;
+    }
+
+    return `${hours} год ${minutesPart} хв ${remainderSeconds} с`;
+  }
+
+  if (minutes > 0) {
+    if (remainderSeconds === 0) {
+      return `${minutes} хв`;
+    }
+
+    return `${minutes} хв ${remainderSeconds} с`;
+  }
+
+  return `${remainderSeconds} с`;
+}
 
     function formatQuestTime(totalSeconds) {
       const safeSeconds = Math.max(0, Math.floor(Number(totalSeconds) || 0));
@@ -6197,7 +6551,12 @@ progressStatistics: {}
       if (!entry || typeof entry !== "object") return null;
       const exerciseId = typeof entry.exerciseId === "string" && getPhysicalExerciseDefinition(entry.exerciseId) ? entry.exerciseId : null;
       if (!exerciseId) return null;
-      const source = entry.source === "quest" || entry.source === "manual" ? entry.source : null;
+      const source =
+  entry.source === "quest" ||
+  entry.source === "manual" ||
+  entry.source === "training"
+    ? entry.source
+    : null;
       if (!source) return null;
       const value = getSafePhysicalActivityValue(exerciseId, entry.value);
       if (value === null) return null;
@@ -7179,7 +7538,11 @@ if (exerciseSelect) {
       if (!definition) return false;
       const safeValue = getSafePhysicalActivityValue(exerciseId, value);
       if (safeValue === null) return false;
-      if (source !== "manual" && source !== "quest") return false;
+      if (
+  source !== "manual" &&
+  source !== "quest" &&
+  source !== "training"
+) return false;
       if (!Array.isArray(gameState.physicalActivityHistory)) {
         gameState.physicalActivityHistory = [];
       }
