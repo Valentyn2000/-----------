@@ -3244,26 +3244,48 @@ optionalBatchNumber: Number.isInteger(safeSelection.optionalBatchNumber)
     function getEstimatedQuestDurationMinutes(quest) {
   const parameters = quest?.parameters || {};
 
-  if (Number.isFinite(parameters.durationSeconds) && parameters.durationSeconds > 0) {
+  if (
+    Number.isFinite(parameters.durationSeconds) &&
+    parameters.durationSeconds > 0
+  ) {
     return parameters.durationSeconds / 60;
   }
 
-  if (Number.isFinite(parameters.durationMinutes) && parameters.durationMinutes > 0) {
+  if (
+    Number.isFinite(parameters.durationMinutes) &&
+    parameters.durationMinutes > 0
+  ) {
     return parameters.durationMinutes;
   }
 
-  if (Number.isFinite(parameters.distanceMeters) && parameters.distanceMeters > 0) {
+  if (
+    Number.isFinite(parameters.distanceMeters) &&
+    parameters.distanceMeters > 0
+  ) {
     const walkingSpeedMetersPerMinute = 80;
-    return parameters.distanceMeters / walkingSpeedMetersPerMinute;
-  }
 
-  if (Number.isFinite(parameters.reps) && parameters.reps > 0) {
-    const secondsPerRep = 4;
-    return (parameters.reps * secondsPerRep) / 60;
+    return (
+      parameters.distanceMeters /
+      walkingSpeedMetersPerMinute
+    );
   }
 
   if (
-    Number.isFinite(quest?.requirements?.minimumAvailableTime) &&
+    Number.isFinite(parameters.reps) &&
+    parameters.reps > 0
+  ) {
+    const secondsPerRep = 4;
+
+    return (
+      parameters.reps *
+      secondsPerRep
+    ) / 60;
+  }
+
+  if (
+    Number.isFinite(
+      quest?.requirements?.minimumAvailableTime
+    ) &&
     quest.requirements.minimumAvailableTime > 0
   ) {
     return quest.requirements.minimumAvailableTime;
@@ -3375,11 +3397,12 @@ if (
     }
 
     function getAdaptiveDifficulty(characteristic, baseDifficulty) {
-      const baseIndex = Math.max(0, physicalDifficultyOrder.indexOf(baseDifficulty));
-      const score = getAdaptiveScore(characteristic);
-      const offset = score >= 2 ? 1 : (score <= -2 ? -1 : 0);
-      return physicalDifficultyOrder[Math.max(0, Math.min(physicalDifficultyOrder.length - 1, baseIndex + offset))];
-    }
+  if (!physicalDifficultyOrder.includes(baseDifficulty)) {
+    return "easy";
+  }
+
+  return baseDifficulty;
+}
 
     function adaptQuestParameters(quest) {
   const parameters = { ...(quest.parameters || {}) };
@@ -3636,18 +3659,21 @@ function getBaseQuestIdFromInstanceId(questId) {
       "glute-bridge",
       "calf-raises",
       "goblet-squat",
-      "dumbbell-rdl"
+      "dumbbell-rdl",
+      "kettlebell-deadlift"
     ]),
 
     push: new Set([
       "pushups",
       "incline-pushups",
-      "floor-press",
-      "overhead-press"
+      "dumbbell-floor-press",
+      "dumbbell-overhead-press"
     ]),
 
     pull: new Set([
-      "one-arm-row"
+      "one-arm-dumbbell-row",
+      "resistance-band-row",
+      "dead-hang"
     ]),
 
     core: new Set([
@@ -3657,16 +3683,18 @@ function getBaseQuestIdFromInstanceId(questId) {
     ]),
 
     arms: new Set([
-      "biceps-curl",
+      "dumbbell-biceps-curl",
       "hammer-curl",
-      "triceps-extension",
-      "lateral-raise"
+      "overhead-triceps-extension",
+      "dumbbell-lateral-raise"
     ]),
 
     conditioning: new Set([
       "farmer-carry",
       "fast-walk",
-      "walk"
+      "walk",
+      "jump-rope",
+      "bicycle"
     ]),
 
     mobility: new Set([
@@ -3950,7 +3978,17 @@ optionalBatchNumber: 0,
           const quest = getQuestLibrary().find((candidate) => candidate.id === questId);
           return [questId, quest ? createQuestInstance(quest) : null];
         }).filter((entry) => entry[1])),
-        recentSelections: selectionState.recentSelections.filter((entry) => Date.now() - new Date(entry.selectedAt).getTime() < 14 * 24 * 60 * 60 * 1000),
+        recentSelections: [
+  ...selectionState.recentSelections.filter(
+    (entry) =>
+      Date.now() - new Date(entry.selectedAt).getTime() <
+      14 * 24 * 60 * 60 * 1000
+  ),
+  ...freshSelection.map((questId) => ({
+    id: questId,
+    selectedAt: new Date().toISOString()
+  }))
+],
         replacementHistory: selectionState.replacementHistory || []
       };
       saveGameState();
@@ -3965,7 +4003,15 @@ optionalBatchNumber: 0,
     selectionState = normalizeQuestSelectionState(gameState.questSelection);
   }
 
-  const baseQuestIds = generateOptionalQuestSelection();
+  const previousOptionalBaseQuestIds =
+  selectionState.optionalQuestIds.map((questId) =>
+    getBaseQuestIdFromInstanceId(questId)
+  );
+
+const baseQuestIds =
+  generateOptionalQuestSelection(
+    previousOptionalBaseQuestIds
+  );
   const batchNumber = selectionState.optionalBatchNumber + 1;
 
   const optionalSelection = baseQuestIds.map((baseQuestId, index) =>
@@ -3991,15 +4037,26 @@ optionalBatchNumber: 0,
     }).filter((entry) => entry[1])
   );
 
-  gameState.questSelection = {
-    ...selectionState,
-    optionalQuestIds: optionalSelection,
-    optionalBatchNumber: batchNumber,
-    instances: {
-      ...selectionState.instances,
-      ...optionalInstances
-    }
-  };
+  const previousOptionalQuestIds =
+  new Set(selectionState.optionalQuestIds);
+
+const retainedInstances =
+  Object.fromEntries(
+    Object.entries(selectionState.instances).filter(
+      ([instanceId]) =>
+        !previousOptionalQuestIds.has(instanceId)
+    )
+  );
+
+gameState.questSelection = {
+  ...selectionState,
+  optionalQuestIds: optionalSelection,
+  optionalBatchNumber: batchNumber,
+  instances: {
+    ...retainedInstances,
+    ...optionalInstances
+  }
+};
 
   saveGameState();
 
@@ -4376,11 +4433,17 @@ const replacementInstance = createQuestInstance(
   replacementInstanceId
 );
 
+const updatedInstances = {
+  ...selectionState.instances
+};
+
+delete updatedInstances[questId];
+
 gameState.questSelection = {
   ...selectionState,
   optionalQuestIds: updatedOptionalQuestIds,
   instances: {
-    ...selectionState.instances,
+    ...updatedInstances,
     [replacementInstanceId]: replacementInstance
   },
   replacementHistory: [
@@ -4464,10 +4527,40 @@ const questTimerStates = loadQuestTimerStates();
 
     function completePhysicalQuestFromCard(questId, completionResult = null) {
       const quest = getQuestInstance(questId);
-      if (!quest || gameState.completedQuests.includes(questId)) return false;
 
-      gameState.experience += Number(quest.xpReward || 0);
-      gameState.completedQuests.push(questId);
+if (
+  !quest ||
+  gameState.completedQuests.includes(questId)
+) {
+  return false;
+}
+
+const hasPhysicalTracking =
+  typeof quest.exerciseId === "string" &&
+  Boolean(
+    getPhysicalExerciseDefinition(
+      quest.exerciseId
+    )
+  );
+
+if (hasPhysicalTracking) {
+  const activityRecorded =
+    recordPhysicalActivityFromQuest(
+      quest,
+      questId,
+      completionResult
+    );
+
+  if (!activityRecorded) {
+    return false;
+  }
+}
+
+gameState.experience += Number(
+  quest.xpReward || 0
+);
+
+gameState.completedQuests.push(questId);
       if (!Array.isArray(gameState.dailyState.completedQuestIds)) {
   gameState.dailyState.completedQuestIds = [];
 }
@@ -5509,17 +5602,8 @@ trainingState: {
 
     const defaultGameState = createDefaultGameState();
 
-    const levelThresholds = [
-      { level: 1, minimumXp: 0, nextLevelXp: 100 },
-      { level: 2, minimumXp: 100, nextLevelXp: 250 },
-      { level: 3, minimumXp: 250, nextLevelXp: 450 },
-      { level: 4, minimumXp: 450, nextLevelXp: 700 },
-      { level: 5, minimumXp: 700, nextLevelXp: 1000 },
-      { level: 6, minimumXp: 1000, nextLevelXp: 1250 },
-      { level: 7, minimumXp: 1250, nextLevelXp: 1550 },
-      { level: 8, minimumXp: 1550, nextLevelXp: 1850 },
-      { level: 9, minimumXp: 1850, nextLevelXp: 2200 }
-    ];
+    const baseLevelXpRequirement = 50;
+const levelXpGrowthMultiplier = 1.5;
 
     const seriesDifficultyConfig = {
       easy: { label: "🟢 Легка", stageRange: "20–40 XP" },
@@ -5656,8 +5740,7 @@ function completeTrainingBlock() {
 
   const trainingXpReward = 40;
 
-  gameState.experience += trainingXpReward;
-
+const activityRecorded =
   recordPhysicalActivity({
     exerciseId: "training",
     value: 1800,
@@ -5666,6 +5749,12 @@ function completeTrainingBlock() {
     questId: blockId,
     timestamp: new Date().toISOString()
   });
+
+if (!activityRecorded) {
+  return false;
+}
+
+gameState.experience += trainingXpReward;
 
   gameState.trainingState = {
     ...trainingState,
@@ -5691,9 +5780,10 @@ function completeTrainingBlock() {
 
   saveGameState();
 
-  renderTrainingSection();
+updateGameStateView();
+renderTrainingSection();
 
-  return true;
+return true;
 }
 function renderTrainingSection() {
   const homeScreen =
@@ -5711,11 +5801,18 @@ function renderTrainingSection() {
   const trainingState =
   gameState.trainingState || {};
 
+const isCurrentTrainingDay =
+  trainingState.lastTrainingDateKey === getTodayKey();
+
 const completedBlocks =
-  Number(trainingState.completedBlocksToday) || 0;
+  isCurrentTrainingDay
+    ? Number(trainingState.completedBlocksToday) || 0
+    : 0;
 
 const completedMinutes =
-  Number(trainingState.completedMinutesToday) || 0;
+  isCurrentTrainingDay
+    ? Number(trainingState.completedMinutesToday) || 0
+    : 0;
 
 const remainingSeconds =
   getTrainingRemainingSeconds();
@@ -5910,7 +6007,42 @@ if (dailyCycleSection && homeScreen) {
       const todayKey = getTodayKey();
       const dailyState = gameState.dailyState;
       if (dailyState.dateKey !== todayKey) {
-        const selectedIds = syncRecommendedQuestSelection();
+  const repeatableQuestIds = new Set(
+    getQuestLibrary()
+      .filter((quest) => quest.repeatable === true)
+      .map((quest) => quest.id)
+  );
+
+  gameState.completedQuests =
+    Array.isArray(gameState.completedQuests)
+      ? gameState.completedQuests.filter((questId) => {
+          const baseQuestId =
+            getBaseQuestIdFromInstanceId(questId);
+
+          const isBaseRepeatableQuest =
+            questId === baseQuestId &&
+            repeatableQuestIds.has(baseQuestId);
+
+          return !isBaseRepeatableQuest;
+        })
+      : [];
+
+  [...questTimerStates.keys()].forEach((questId) => {
+    const baseQuestId =
+      getBaseQuestIdFromInstanceId(questId);
+
+    if (
+      questId === baseQuestId &&
+      repeatableQuestIds.has(baseQuestId)
+    ) {
+      stopActiveQuestTimer(questId);
+      questTimerStates.delete(questId);
+    }
+  });
+
+  saveQuestTimerStates();
+
+  const selectedIds = syncRecommendedQuestSelection();
        gameState.dailyState = {
   dateKey: todayKey,
   status: "active",
@@ -6407,24 +6539,61 @@ if (dailyCycleSection && homeScreen) {
     }
 
     function getLevelInfo(experience) {
-      return [...levelThresholds].reverse().find((threshold) => experience >= threshold.minimumXp) || levelThresholds[0];
-    }
+  const safeExperience =
+    Math.max(0, Math.floor(Number(experience) || 0));
+
+  let level = 1;
+  let minimumXp = 0;
+  let xpRequirement = baseLevelXpRequirement;
+
+  while (
+    safeExperience >= minimumXp + xpRequirement
+  ) {
+    minimumXp += xpRequirement;
+    level += 1;
+
+    xpRequirement = Math.floor(
+      xpRequirement * levelXpGrowthMultiplier
+    );
+  }
+
+  return {
+    level,
+    minimumXp,
+    nextLevelXp: minimumXp + xpRequirement
+  };
+}
 
     function updateLevel() {
-      const currentLevel = getLevelInfo(gameState.experience).level;
-      if (currentLevel > gameState.level) {
-        const previousLevel = gameState.level;
-        gameState.level = currentLevel;
-        document.querySelector("#level-up-message").hidden = false;
-        if (hasNewlyAvailableContent(previousLevel, currentLevel) && !gameState.unlockNoticesShown.includes(currentLevel)) {
-          document.querySelector("#quest-unlock-message").hidden = false;
-          gameState.unlockNoticesShown.push(currentLevel);
-        }
-        saveGameState();
-      }
+  const calculatedLevel =
+    getLevelInfo(gameState.experience).level;
 
-      document.querySelector(".level strong").textContent = gameState.level;
+  const previousLevel =
+    Number(gameState.level) || 1;
+
+  const leveledUp =
+    calculatedLevel > previousLevel;
+
+  if (leveledUp) {
+    document.querySelector("#level-up-message").hidden = false;
+
+    if (
+      hasNewlyAvailableContent(previousLevel, calculatedLevel) &&
+      !gameState.unlockNoticesShown.includes(calculatedLevel)
+    ) {
+      document.querySelector("#quest-unlock-message").hidden = false;
+      gameState.unlockNoticesShown.push(calculatedLevel);
     }
+  }
+
+  if (gameState.level !== calculatedLevel) {
+    gameState.level = calculatedLevel;
+    saveGameState();
+  }
+
+  document.querySelector(".level strong").textContent =
+    gameState.level;
+}
 
     function updateProgressView() {
       const streakText = `${gameState.streak} днів`;
@@ -7381,13 +7550,18 @@ if (exerciseSelect) {
 
     function completeDayIfReady() {
   if (isPhysicalAlphaEnabled()) {
-    const selectionState = normalizeQuestSelectionState(gameState.questSelection);
+    const selectionState =
+      normalizeQuestSelectionState(gameState.questSelection);
+
     const todayKey = getTodayKey();
 
     if (selectionState.dateKey !== todayKey) return;
 
     const requiredQuestIds =
-      selectionState.selectedQuestIds.slice(0, requiredDailyQuestLimit);
+      selectionState.selectedQuestIds.slice(
+        0,
+        requiredDailyQuestLimit
+      );
 
     const requiredQuestsCompleted =
       requiredQuestIds.length === requiredDailyQuestLimit &&
@@ -7403,13 +7577,42 @@ if (exerciseSelect) {
 
     if (!gameState.completedDays.includes(todayKey)) {
       gameState.completedDays.push(todayKey);
-      gameState.streak += 1;
+
+      const completedDaySet = new Set(
+        gameState.completedDays.filter(
+          (dateKey) =>
+            typeof dateKey === "string" &&
+            /^\d{4}-\d{2}-\d{2}$/.test(dateKey)
+        )
+      );
+
+      let calculatedStreak = 0;
+
+      const streakDate = new Date();
+      streakDate.setHours(12, 0, 0, 0);
+
+      while (
+        completedDaySet.has(
+          getLocalDateKey(streakDate)
+        )
+      ) {
+        calculatedStreak += 1;
+        streakDate.setDate(
+          streakDate.getDate() - 1
+        );
+      }
+
+      gameState.streak = calculatedStreak;
 
       if (!Array.isArray(gameState.dailyHistory)) {
         gameState.dailyHistory = [];
       }
 
-      if (!gameState.dailyHistory.some((entry) => entry.dateKey === todayKey)) {
+      if (
+        !gameState.dailyHistory.some(
+          (entry) => entry.dateKey === todayKey
+        )
+      ) {
         gameState.dailyHistory.push({
           dateKey: todayKey,
           completedQuestIds: [...requiredQuestIds],
@@ -7424,8 +7627,9 @@ if (exerciseSelect) {
     return;
   }
 
-  const dayQuestIds = [...document.querySelectorAll(".day-quest")]
-    .map((quest) => quest.dataset.questId);
+  const dayQuestIds = [
+    ...document.querySelectorAll(".day-quest")
+  ].map((quest) => quest.dataset.questId);
 
   const allDayQuestsCompleted =
     dayQuestIds.length > 0 &&
@@ -7433,14 +7637,35 @@ if (exerciseSelect) {
       gameState.completedQuests.includes(questId)
     );
 
-  const completionDate = new Date().toISOString().slice(0, 10);
+  const completionDate = getTodayKey();
 
   if (
     allDayQuestsCompleted &&
     !gameState.completedDays.includes(completionDate)
   ) {
-    gameState.streak += 1;
     gameState.completedDays.push(completionDate);
+
+    const completedDaySet =
+      new Set(gameState.completedDays);
+
+    let calculatedStreak = 0;
+
+    const streakDate = new Date();
+    streakDate.setHours(12, 0, 0, 0);
+
+    while (
+      completedDaySet.has(
+        getLocalDateKey(streakDate)
+      )
+    ) {
+      calculatedStreak += 1;
+      streakDate.setDate(
+        streakDate.getDate() - 1
+      );
+    }
+
+    gameState.streak = calculatedStreak;
+
     saveGameState();
   }
 }
