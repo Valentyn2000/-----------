@@ -6735,16 +6735,94 @@ function getGameNotificationIntervalMs() {
   return hours * 60 * 60 * 1000;
 }
 
+let nativeLocalNotificationsPlugin = null;
+
+function getNativeLocalNotificationsPlugin() {
+  const capacitor =
+    window.Capacitor;
+
+  if (!capacitor) {
+    return null;
+  }
+
+  if (
+    typeof capacitor.getPlatform === "function" &&
+    capacitor.getPlatform() === "web"
+  ) {
+    return null;
+  }
+
+  if (nativeLocalNotificationsPlugin) {
+    return nativeLocalNotificationsPlugin;
+  }
+
+  if (
+    capacitor.Plugins?.LocalNotifications
+  ) {
+    nativeLocalNotificationsPlugin =
+      capacitor.Plugins.LocalNotifications;
+
+    return nativeLocalNotificationsPlugin;
+  }
+
+  if (
+    typeof capacitor.registerPlugin ===
+    "function"
+  ) {
+    nativeLocalNotificationsPlugin =
+      capacitor.registerPlugin(
+        "LocalNotifications"
+      );
+
+    return nativeLocalNotificationsPlugin;
+  }
+
+  return null;
+}
+
 async function requestGameNotificationPermission() {
+  const nativeNotifications =
+    getNativeLocalNotificationsPlugin();
+
+  if (nativeNotifications) {
+    try {
+      const currentPermission =
+        await nativeNotifications
+          .checkPermissions();
+
+      if (
+        currentPermission?.display ===
+        "granted"
+      ) {
+        return "granted";
+      }
+
+      const requestedPermission =
+        await nativeNotifications
+          .requestPermissions();
+
+      return requestedPermission?.display ===
+        "granted"
+        ? "granted"
+        : "denied";
+    } catch (error) {
+      return "denied";
+    }
+  }
+
   if (!("Notification" in window)) {
     return "unsupported";
   }
 
-  if (Notification.permission === "granted") {
+  if (
+    Notification.permission === "granted"
+  ) {
     return "granted";
   }
 
-  if (Notification.permission === "denied") {
+  if (
+    Notification.permission === "denied"
+  ) {
     return "denied";
   }
 
@@ -6755,7 +6833,195 @@ async function requestGameNotificationPermission() {
   }
 }
 
+function getNativeGameNotificationIds() {
+  const notifications = [];
+
+  for (
+    let dayIndex = 0;
+    dayIndex < 7;
+    dayIndex += 1
+  ) {
+    for (
+      let hour = 0;
+      hour < 24;
+      hour += 1
+    ) {
+      notifications.push({
+        id:
+          710000 +
+          dayIndex * 100 +
+          hour
+      });
+    }
+  }
+
+  return notifications;
+}
+
+async function scheduleNativeGameNotifications() {
+  const nativeNotifications =
+    getNativeLocalNotificationsPlugin();
+
+  if (!nativeNotifications) {
+    return false;
+  }
+
+  try {
+    await nativeNotifications.cancel({
+      notifications:
+        getNativeGameNotificationIds()
+    });
+
+    const preferences =
+      gameState?.notificationPreferences;
+
+    if (!preferences?.enabled) {
+      return true;
+    }
+
+    const startHour =
+      Number.isFinite(
+        Number(preferences.startHour)
+      )
+        ? Math.max(
+            0,
+            Math.min(
+              23,
+              Number(preferences.startHour)
+            )
+          )
+        : 9;
+
+    const endHour =
+      Number.isFinite(
+        Number(preferences.endHour)
+      )
+        ? Math.max(
+            startHour + 1,
+            Math.min(
+              24,
+              Number(preferences.endHour)
+            )
+          )
+        : 21;
+
+    const intervalHours =
+      Math.max(
+        1,
+        Math.round(
+          getGameNotificationIntervalMs() /
+            (60 * 60 * 1000)
+        )
+      );
+
+    const now =
+      new Date();
+
+    const notifications = [];
+
+    for (
+      let dayIndex = 0;
+      dayIndex < 7;
+      dayIndex += 1
+    ) {
+      if (
+        dayIndex === 0 &&
+        gameState?.dailyState?.status ===
+          "completed"
+      ) {
+        continue;
+      }
+
+      for (
+        let hour = startHour;
+        hour < endHour;
+        hour += intervalHours
+      ) {
+        const notificationDate =
+          new Date();
+
+        notificationDate.setHours(
+          0,
+          0,
+          0,
+          0
+        );
+
+        notificationDate.setDate(
+          notificationDate.getDate() +
+            dayIndex
+        );
+
+        notificationDate.setHours(
+          hour,
+          0,
+          0,
+          0
+        );
+
+        if (
+          notificationDate.getTime() <=
+          now.getTime()
+        ) {
+          continue;
+        }
+
+        notifications.push({
+          id:
+            710000 +
+            dayIndex * 100 +
+            hour,
+          title: "Гра в життя",
+          body:
+            "У тебе ще є квести на сьогодні.",
+          schedule: {
+            at: notificationDate
+          },
+          autoCancel: true
+        });
+      }
+    }
+
+    if (notifications.length) {
+      await nativeNotifications.schedule({
+        notifications
+      });
+    }
+
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
 async function showGameNotification(body) {
+  const nativeNotifications =
+    getNativeLocalNotificationsPlugin();
+
+  if (nativeNotifications) {
+    try {
+      await nativeNotifications.schedule({
+        notifications: [
+          {
+            id: 719999,
+            title: "Гра в життя",
+            body,
+            schedule: {
+              at: new Date(
+                Date.now() + 1000
+              )
+            },
+            autoCancel: true
+          }
+        ]
+      });
+
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
   if (
     !("Notification" in window) ||
     Notification.permission !== "granted"
@@ -6764,25 +7030,6 @@ async function showGameNotification(body) {
   }
 
   try {
-    if (
-      "serviceWorker" in navigator &&
-      navigator.serviceWorker.controller
-    ) {
-      const registration =
-        await navigator.serviceWorker.ready;
-
-      await registration.showNotification(
-        "Гра в життя",
-        {
-          body,
-          tag: "game-life-reminder",
-          renotify: true
-        }
-      );
-
-      return true;
-    }
-
     new Notification(
       "Гра в життя",
       {
@@ -6803,16 +7050,23 @@ async function checkGameNotificationReminder() {
 
   if (!preferences?.enabled) return;
 
-  const currentDate = new Date();
-  const currentHour = currentDate.getHours();
+  const currentDate =
+    new Date();
+
+  const currentHour =
+    currentDate.getHours();
 
   const startHour =
-    Number.isFinite(Number(preferences.startHour))
+    Number.isFinite(
+      Number(preferences.startHour)
+    )
       ? Number(preferences.startHour)
       : 9;
 
   const endHour =
-    Number.isFinite(Number(preferences.endHour))
+    Number.isFinite(
+      Number(preferences.endHour)
+    )
       ? Number(preferences.endHour)
       : 21;
 
@@ -6824,7 +7078,8 @@ async function checkGameNotificationReminder() {
   }
 
   if (
-    gameState?.dailyState?.status === "completed"
+    gameState?.dailyState?.status ===
+    "completed"
   ) {
     return;
   }
@@ -6863,7 +7118,34 @@ async function checkGameNotificationReminder() {
   saveGameState();
 }
 
-function startGameNotificationReminderLoop() {
+async function startGameNotificationReminderLoop() {
+  const nativeNotifications =
+    getNativeLocalNotificationsPlugin();
+
+  if (nativeNotifications) {
+    const permission =
+      await requestGameNotificationPermission();
+
+    if (permission !== "granted") {
+      return;
+    }
+
+    if (
+      !gameState.notificationPreferences
+        ?.enabled
+    ) {
+      gameState.notificationPreferences = {
+        ...gameState.notificationPreferences,
+        enabled: true
+      };
+
+      saveGameState();
+    }
+
+    await scheduleNativeGameNotifications();
+    return;
+  }
+
   if (
     window.gameNotificationReminderTimer
   ) {
@@ -8849,10 +9131,11 @@ if (exerciseSelect) {
       });
     });
 
-    moveContentIntoScreens();
+        moveContentIntoScreens();
     setupNavigation();
     completeDayIfReady();
     updateGameStateView();
+    startGameNotificationReminderLoop();
   </script>
 </body>
 </html>
